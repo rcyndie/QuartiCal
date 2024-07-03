@@ -226,7 +226,20 @@ class DelayAndTec(ParameterizedGain):
                 np.save(path0+"tec_fft_freq.npy", fft_freqt)
 
 
-
+                for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
+                    if p == ref_ant:
+                        params[t, uf, q, 0, 0] = -tec_est[q]
+                        params[t, uf, q, 0, 1] = -delay_est[q]
+                        if n_corr > 1:
+                            params[t, uf, q, 0, 2] = -tec_est[q]
+                            params[t, uf, q, 0, 3] = -delay_est[q]
+                    else:
+                        params[t, uf, p, 0, 0] = tec_est[p]
+                        params[t, uf, p, 0, 1] = delay_est[p]
+                        if n_corr > 1:
+                            params[t, uf, p, 0, 2] = tec_est[p]
+                            params[t, uf, p, 0, 3] = delay_est[p]
+                            
         delay_and_tec_params_to_gains(
             params,
             gains,
