@@ -188,7 +188,7 @@ class DelayAndTec(ParameterizedGain):
                     fft_data_pk = np.abs(vis_finufft)
                     delay_est = fft_freqk[np.argmax(fft_data_pk, axis=1)]
                 
-                delay_est[~valid_ant, :] = 0
+                delay_est[~valid_ant] = 0
 
                 #Obtain the tec-related peak
                 ##factor for rescaling frequency
@@ -230,7 +230,7 @@ class DelayAndTec(ParameterizedGain):
                     fft_data_pt = np.abs(vis_finufft)
                     tec_est = fft_freqt[np.argmax(fft_data_pt, axis=1)]
 
-                tec_est[~valid_ant, :] = 0
+                tec_est[~valid_ant] = 0
 
                 
                 path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
@@ -249,15 +249,21 @@ class DelayAndTec(ParameterizedGain):
 
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
                     if p == ref_ant:
-                        params[t, uf, q, 0, 0] = -tec_est[q, 0]
-                        params[t, uf, q, 0, 1] = -delay_est[q, 0]
-                        if n_corr > 1:
+                        if n_corr == 1:
+                            params[t, uf, q, 0, 0] = -tec_est[q]
+                            params[t, uf, q, 0, 1] = -delay_est[q]
+                        elif n_corr > 1:
+                            params[t, uf, q, 0, 0] = -tec_est[q, 0]
+                            params[t, uf, q, 0, 1] = -delay_est[q, 0]
                             params[t, uf, q, 0, 2] = -tec_est[q, 1]
                             params[t, uf, q, 0, 3] = -delay_est[q, 1]
                     else:
-                        params[t, uf, p, 0, 0] = tec_est[p, 0]
-                        params[t, uf, p, 0, 1] = delay_est[p, 0]
-                        if n_corr > 1:
+                        if n_corr == 1:
+                            params[t, uf, p, 0, 0] = tec_est[p]
+                            params[t, uf, p, 0, 1] = delay_est[p]
+                        elif n_corr > 1:
+                            params[t, uf, p, 0, 0] = tec_est[p, 0]
+                            params[t, uf, p, 0, 1] = delay_est[p, 0]
                             params[t, uf, p, 0, 2] = tec_est[p, 1]
                             params[t, uf, p, 0, 3] = delay_est[p, 1]
                             
