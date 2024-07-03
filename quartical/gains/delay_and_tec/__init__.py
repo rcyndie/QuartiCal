@@ -99,6 +99,15 @@ class DelayAndTec(ParameterizedGain):
         utint = np.unique(t_map)
         ufint = np.unique(f_map)
 
+        if n_corr == 1:
+            n_paramt = 1 #number of parameters in TEC
+            n_paramk = 1 #number of parameters in delay
+        elif n_corr in (2, 4):
+            n_paramt = 2
+            n_paramk = 2
+        else:
+            raise ValueError("Unsupported number of correlations.")
+
         for ut in utint:
             sel = np.where((t_map == ut) & (a1 != a2))
             ant_map_pq = np.where(a1[sel] == ref_ant, a2[sel], 0)
@@ -154,27 +163,32 @@ class DelayAndTec(ParameterizedGain):
                 fft_freqk = np.fft.fftshift(fft_freqk)
 
                 #Initialise array to contain delay estimates
-                delay_est = np.zeros((n_ant), dtype=np.float64)
+                delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
 
                 #Let me try using the nufft for the delay estimation as well
-                fft_datak = np.zeros((n_ant, nk, 1), dtype=fsel_data.dtype)
+                fft_datak = np.zeros((n_ant, nk, n_paramk), dtype=fsel_data.dtype)
 
-                # for k in range(n_param):
-                #     #must fix this - fsel_data must be dependent on number of correlations
-                #     # if n_param == 2:
-                #     #     datak = np.sum(fsel_data, axis=2)
-                #     # elif n_param in (4):
-                vis_finufft = finufft.nufft1d3(
-                    2 * np.pi * chan_freq,
-                    fsel_data[:, :, 0],
-                    fft_freqk,
-                    eps=1e-6,
-                    isign=-1
-                )
-                fft_datak[:, :, 0] = vis_finufft
-                fft_data_pk = np.abs(vis_finufft)
-                delay_est = fft_freqk[np.argmax(fft_data_pk, axis=1)]
-                delay_est[~valid_ant] = 0
+                for k in range(n_paramk):
+                    #must fix this - fsel_data must be dependent on number of correlations
+                    if k == 0:
+                        datak = fsel_data[:, :, 0]
+                    elif k == 1:
+                        datak = fsel_data[:, :, -1]
+                    else:
+                        raise ValueError("Unsupported number of parameters for delay.")
+
+                    vis_finufft = finufft.nufft1d3(
+                        2 * np.pi * chan_freq,
+                        datak,
+                        fft_freqk,
+                        eps=1e-6,
+                        isign=-1
+                    )
+                    fft_datak[:, :, k] = vis_finufft
+                    fft_data_pk = np.abs(vis_finufft)
+                    delay_est = fft_freqk[np.argmax(fft_data_pk, axis=1)]
+                
+                delay_est[~valid_ant, :] = 0
 
                 #Obtain the tec-related peak
                 ##factor for rescaling frequency
@@ -193,26 +207,34 @@ class DelayAndTec(ParameterizedGain):
 
                 fft_freqt = np.linspace(0.5*-sr, 0.5*sr, nt)
 
-                tec_est = np.zeros((n_ant), dtype=np.float64)
-                fft_datat = np.zeros((n_ant, nt, 1), dtype=fsel_data.dtype)
+                tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
+                fft_datat = np.zeros((n_ant, nt, n_paramt), dtype=fsel_data.dtype)
 
+                for k in range(n_paramt):
+                    if k == 0:
+                        datat = fsel_data[:, :, 0]
+                    elif k == 1:
+                        datat = fsel_data[:, :, -1]
+                    else:
+                        raise ValueError("Unsupported number of parameters for TEC.")
 
-                vis_finufft = finufft.nufft1d3(
-                    2 * np.pi * invfreq,
-                    fsel_data[:, :, 0],
-                    fft_freqt,
-                    eps=1e-6,
-                    isign=-1
-                )
-                fft_datat[:, :, 0] = vis_finufft
-                fft_data_pt = np.abs(vis_finufft)
-                tec_est = fft_freqt[np.argmax(fft_data_pt, axis=1)]
-                tec_est[~valid_ant] = 0
+                    vis_finufft = finufft.nufft1d3(
+                        2 * np.pi * invfreq,
+                        datat,
+                        fft_freqt,
+                        eps=1e-6,
+                        isign=-1
+                        )
+                    
+                    fft_datat[:, :, k] = vis_finufft
+                    fft_data_pt = np.abs(vis_finufft)
+                    tec_est = fft_freqt[np.argmax(fft_data_pt, axis=1)]
+
+                tec_est[~valid_ant, :] = 0
 
                 
                 path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd_solved/"
-
                 path01 = ""
 
                 path0 = path00+path01
@@ -227,17 +249,17 @@ class DelayAndTec(ParameterizedGain):
 
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
                     if p == ref_ant:
-                        params[t, uf, q, 0, 0] = -tec_est[q]
-                        params[t, uf, q, 0, 1] = -delay_est[q]
+                        params[t, uf, q, 0, 0] = -tec_est[q, 0]
+                        params[t, uf, q, 0, 1] = -delay_est[q, 0]
                         if n_corr > 1:
-                            params[t, uf, q, 0, 2] = -tec_est[q]
-                            params[t, uf, q, 0, 3] = -delay_est[q]
+                            params[t, uf, q, 0, 2] = -tec_est[q, 1]
+                            params[t, uf, q, 0, 3] = -delay_est[q, 1]
                     else:
-                        params[t, uf, p, 0, 0] = tec_est[p]
-                        params[t, uf, p, 0, 1] = delay_est[p]
+                        params[t, uf, p, 0, 0] = tec_est[p, 0]
+                        params[t, uf, p, 0, 1] = delay_est[p, 0]
                         if n_corr > 1:
-                            params[t, uf, p, 0, 2] = tec_est[p]
-                            params[t, uf, p, 0, 3] = delay_est[p]
+                            params[t, uf, p, 0, 2] = tec_est[p, 1]
+                            params[t, uf, p, 0, 3] = delay_est[p, 1]
                             
         delay_and_tec_params_to_gains(
             params,
