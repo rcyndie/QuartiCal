@@ -133,7 +133,6 @@ class DelayAndTec(ParameterizedGain):
 
 
                 fsel_data = ref_data[:, fsel]
-                print(fsel_data.shape)
                 valid_ant = fsel_data.any(axis=(1, 2))
 
                 #Obtain the delay-related peak
@@ -211,8 +210,8 @@ class DelayAndTec(ParameterizedGain):
                 tec_est[~valid_ant] = 0
 
                 
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd_solved/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd_solved/"
 
                 path01 = ""
 
