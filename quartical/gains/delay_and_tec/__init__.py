@@ -118,6 +118,9 @@ class DelayAndTec(ParameterizedGain):
         else:
             raise ValueError("Unsupported number of correlations.")
 
+        n_param = params.shape[-1]
+        assert n_param == n_paramk + n_paramt
+
         for ut in utint:
             sel = np.where((t_map == ut) & (a1 != a2))
             ant_map_pq = np.where(a1[sel] == ref_ant, a2[sel], 0)
@@ -153,7 +156,6 @@ class DelayAndTec(ParameterizedGain):
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
-
                 #Initialise array to contain delay estimates
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
                 delay_est, fft_arrk, fft_freqk = initial_estimates(
@@ -175,33 +177,121 @@ class DelayAndTec(ParameterizedGain):
                 path01 = ""
 
                 path0 = path00+path01
-                np.save(path0+"delayest.npy", delay_est)
-                np.save(path0+"delay_fftarr.npy", fft_arrk)
-                np.save(path0+"delay_fft_freq.npy", fft_freqk)
-                np.save(path0+"tecest.npy", tec_est)
-                np.save(path0+"tec_fftarr.npy", fft_arrt)
-                np.save(path0+"tec_fft_freq.npy", fft_freqt)
+                np.save(path0+"delayest0.npy", delay_est)
+                np.save(path0+"delay_fftarr0.npy", fft_arrk)
+                np.save(path0+"delay_fft_freq0.npy", fft_freqk)
+                np.save(path0+"tecest.npy0", tec_est)
+                np.save(path0+"tec_fftarr0.npy", fft_arrt)
+                np.save(path0+"tec_fft_freq0.npy", fft_freqt)
 
 
+                #Selecting the dominant peak and setting the other parameter to zero.
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
                     if p == ref_ant:
                         if n_corr == 1:
-                            params[t, uf, q, 0, 0] = -tec_est[q]
-                            params[t, uf, q, 0, 1] = -delay_est[q]
+                            if np.max(fft_arrk[q, :, 0]) > np.max(fft_arrt[q, :, 0]):
+                                if np.allclose(delay_est[q], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 0] = -tec_est[q]
+                                    params[t, uf, q, 0, 1] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, q, 0, 0] = 0
+                                    params[t, uf, q, 0, 1] = -delay_est[q]
+                            else:
+                                if np.allclose(tec_est[q], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 0] = 0
+                                    params[t, uf, q, 0, 1] = -delay_est[q]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, q, 0, 0] = -tec_est[q]
+                                    params[t, uf, q, 0, 1] = 0
                         elif n_corr > 1:
-                            params[t, uf, q, 0, 0] = -tec_est[q, 0]
-                            params[t, uf, q, 0, 1] = -delay_est[q, 0]
-                            params[t, uf, q, 0, 2] = -tec_est[q, 1]
-                            params[t, uf, q, 0, 3] = -delay_est[q, 1]
+                            if np.max(fft_arrk[q, :, 0]) > np.max(fft_arrt[q, :, 0]):
+                                if np.allclose(delay_est[q, 0], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 0] = -tec_est[q, 0]
+                                    params[t, uf, q, 0, 1] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, q, 0, 0] = 0
+                                    params[t, uf, q, 0, 1] = -delay_est[q, 0]
+                            else:
+                                if np.allclose(tec_est[q, 0], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 0] = 0
+                                    params[t, uf, q, 0, 1] = -delay_est[q, 0]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, q, 0, 0] = -tec_est[q, 0]
+                                    params[t, uf, q, 0, 1] = 0
+                            
+                            if np.max(fft_arrk[q, :, 1]) > np.max(fft_arrt[q, :, 1]):
+                                if np.allclose(delay_est[q, 1], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 2] = -tec_est[q, 1]
+                                    params[t, uf, q, 0, 3] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, q, 0, 2] = 0
+                                    params[t, uf, q, 0, 3] = -delay_est[q, 1]
+                            else:
+                                if np.allclose(tec_est[q, 1], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 2] = 0
+                                    params[t, uf, q, 0, 3] = -delay_est[q, 1]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, q, 0, 2] = -tec_est[q, 1]
+                                    params[t, uf, q, 0, 3] = 0
+
                     else:
                         if n_corr == 1:
-                            params[t, uf, p, 0, 0] = tec_est[p]
-                            params[t, uf, p, 0, 1] = delay_est[p]
+                            if np.max(fft_arrk[p, :, 0]) > np.max(fft_arrt[p, :, 0]):
+                                if np.allclose(delay_est[p], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 0] = tec_est[p]
+                                    params[t, uf, p, 0, 1] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, p, 0, 0] = 0
+                                    params[t, uf, p, 0, 1] = delay_est[p]
+                            else:
+                                if np.allclose(tec_est[p], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 0] = 0
+                                    params[t, uf, p, 0, 1] = delay_est[p]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, p, 0, 0] = tec_est[p]
+                                    params[t, uf, p, 0, 1] = 0
                         elif n_corr > 1:
-                            params[t, uf, p, 0, 0] = tec_est[p, 0]
-                            params[t, uf, p, 0, 1] = delay_est[p, 0]
-                            params[t, uf, p, 0, 2] = tec_est[p, 1]
-                            params[t, uf, p, 0, 3] = delay_est[p, 1]
+                            if np.max(fft_arrk[p, :, 0]) > np.max(fft_arrt[p, :, 0]):
+                                if np.allclose(delay_est[p, 0], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 0] = tec_est[p, 0]
+                                    params[t, uf, p, 0, 1] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, p, 0, 0] = 0
+                                    params[t, uf, p, 0, 1] = delay_est[p, 0]
+                            else:
+                                if np.allclose(tec_est[p, 0], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 0] = 0
+                                    params[t, uf, p, 0, 1] = delay_est[p, 0]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, p, 0, 0] = tec_est[p, 0]
+                                    params[t, uf, p, 0, 1] = 0
+                            
+                            if np.max(fft_arrk[p, :, 1]) > np.max(fft_arrt[p, :, 1]):
+                                if np.allclose(delay_est[p, 1], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 2] = tec_est[p, 1]
+                                    params[t, uf, p, 0, 3] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, p, 0, 2] = 0
+                                    params[t, uf, p, 0, 3] = delay_est[p, 1]
+                            else:
+                                if np.allclose(tec_est[p, 1], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 2] = 0
+                                    params[t, uf, p, 0, 3] = delay_est[p, 1]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, p, 0, 2] = tec_est[p, 1]
+                                    params[t, uf, p, 0, 3] = 0
 
         delay_and_tec_params_to_gains(
             params,
@@ -210,8 +300,185 @@ class DelayAndTec(ParameterizedGain):
             term_kwargs[f"{self.name}_param_freq_map"],
         )
 
+        # gain_tuple spans from the different gain types, here we are only \ 
+        # considering one gain type (delay_and_tec).
+        gain_tuple = (gains,)
+        corrected_data = compute_corrected_residual(
+            data, gain_tuple, a1, a2, t_map, f_map, dir_maps, row_map, row_weights, corr_mode
+        )
+
+        #A second round of estimation
+        for ut in utint:
+            sel = np.where((t_map == ut) & (a1 != a2))
+            ant_map_pq = np.where(a1[sel] == ref_ant, a2[sel], 0)
+            ant_map_qp = np.where(a2[sel] == ref_ant, a1[sel], 0)
+            ant_map = ant_map_pq + ant_map_qp
+
+            ref_data = np.zeros((n_ant, n_chan, n_corr), dtype=np.complex128)
+            counts = np.zeros((n_ant, n_chan), dtype=int)
+            np.add.at(
+                ref_data,
+                ant_map,
+                data[sel]
+            )
+            np.add.at(
+                counts,
+                ant_map,
+                flags[sel] == 0
+            )
+            np.divide(
+                ref_data,
+                counts[:, :, None],
+                where=counts[:, :, None] != 0,
+                out=ref_data
+            )
+
+            for uf in ufint:
+
+                fsel = np.where(f_map == uf)[0]
+                sel_n_chan = fsel.size
+                ##in inverse frequency domain
+                invfreq = 1./chan_freq
+
+                fsel_data = ref_data[:, fsel]
+                valid_ant = fsel_data.any(axis=(1, 2))
+
+                #Initialise array to contain delay estimates
+                delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
+                delay_est, fft_arrk, fft_freqk = initial_estimates(
+                    fsel_data, delay_est, freq, valid_ant, type="k"
+                )
+
+                tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
+                tec_est, fft_arrt, fft_freqt = initial_estimates(
+                    fsel_data, tec_est, invfreq, valid_ant, type="t"
+                )
+
+                np.save(path0+"delayest1.npy", delay_est)
+                np.save(path0+"delay_fftarr1.npy", fft_arrk)
+                np.save(path0+"delay_fft_freq1.npy", fft_freqk)
+                np.save(path0+"tecest.npy1", tec_est)
+                np.save(path0+"tec_fftarr1.npy", fft_arrt)
+                np.save(path0+"tec_fft_freq1.npy", fft_freqt)
+
+                #select again!
+                for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
+                    if p == ref_ant:
+                        if n_corr == 1:
+                            if np.max(fft_arrk[q, :, 0]) > np.max(fft_arrt[q, :, 0]):
+                                if np.allclose(delay_est[q], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 0] = -tec_est[q]
+                                    params[t, uf, q, 0, 1] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, q, 0, 0] = 0
+                                    params[t, uf, q, 0, 1] = -delay_est[q]
+                            else:
+                                if np.allclose(tec_est[q], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 0] = 0
+                                    params[t, uf, q, 0, 1] = -delay_est[q]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, q, 0, 0] = -tec_est[q]
+                                    params[t, uf, q, 0, 1] = 0
+                        elif n_corr > 1:
+                            if np.max(fft_arrk[q, :, 0]) > np.max(fft_arrt[q, :, 0]):
+                                if np.allclose(delay_est[q, 0], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 0] = -tec_est[q, 0]
+                                    params[t, uf, q, 0, 1] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, q, 0, 0] = 0
+                                    params[t, uf, q, 0, 1] = -delay_est[q, 0]
+                            else:
+                                if np.allclose(tec_est[q, 0], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 0] = 0
+                                    params[t, uf, q, 0, 1] = -delay_est[q, 0]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, q, 0, 0] = -tec_est[q, 0]
+                                    params[t, uf, q, 0, 1] = 0
+                            
+                            if np.max(fft_arrk[q, :, 1]) > np.max(fft_arrt[q, :, 1]):
+                                if np.allclose(delay_est[q, 1], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 2] = -tec_est[q, 1]
+                                    params[t, uf, q, 0, 3] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, q, 0, 2] = 0
+                                    params[t, uf, q, 0, 3] = -delay_est[q, 1]
+                            else:
+                                if np.allclose(tec_est[q, 1], 0., atol=1e-10):
+                                    params[t, uf, q, 0, 2] = 0
+                                    params[t, uf, q, 0, 3] = -delay_est[q, 1]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, q, 0, 2] = -tec_est[q, 1]
+                                    params[t, uf, q, 0, 3] = 0
+
+                    else:
+                        if n_corr == 1:
+                            if np.max(fft_arrk[p, :, 0]) > np.max(fft_arrt[p, :, 0]):
+                                if np.allclose(delay_est[p], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 0] = tec_est[p]
+                                    params[t, uf, p, 0, 1] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, p, 0, 0] = 0
+                                    params[t, uf, p, 0, 1] = delay_est[p]
+                            else:
+                                if np.allclose(tec_est[p], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 0] = 0
+                                    params[t, uf, p, 0, 1] = delay_est[p]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, p, 0, 0] = tec_est[p]
+                                    params[t, uf, p, 0, 1] = 0
+                        elif n_corr > 1:
+                            if np.max(fft_arrk[p, :, 0]) > np.max(fft_arrt[p, :, 0]):
+                                if np.allclose(delay_est[p, 0], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 0] = tec_est[p, 0]
+                                    params[t, uf, p, 0, 1] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, p, 0, 0] = 0
+                                    params[t, uf, p, 0, 1] = delay_est[p, 0]
+                            else:
+                                if np.allclose(tec_est[p, 0], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 0] = 0
+                                    params[t, uf, p, 0, 1] = delay_est[p, 0]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, p, 0, 0] = tec_est[p, 0]
+                                    params[t, uf, p, 0, 1] = 0
+                            
+                            if np.max(fft_arrk[p, :, 1]) > np.max(fft_arrt[p, :, 1]):
+                                if np.allclose(delay_est[p, 1], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 2] = tec_est[p, 1]
+                                    params[t, uf, p, 0, 3] = 0
+                                else:
+                                    #only assign delay
+                                    params[t, uf, p, 0, 2] = 0
+                                    params[t, uf, p, 0, 3] = delay_est[p, 1]
+                            else:
+                                if np.allclose(tec_est[p, 1], 0., atol=1e-10):
+                                    params[t, uf, p, 0, 2] = 0
+                                    params[t, uf, p, 0, 3] = delay_est[p, 1]
+                                else:
+                                    #only assign tec
+                                    params[t, uf, p, 0, 2] = tec_est[p, 1]
+                                    params[t, uf, p, 0, 3] = 0
+
+
         apply_param_flags_to_params(param_flags, params, 0)
         apply_gain_flags_to_gains(gain_flags, gains)
+
+        delay_and_tec_params_to_gains(
+            params,
+            gains,
+            ms_kwargs["CHAN_FREQ"],
+            term_kwargs[f"{self.name}_param_freq_map"],
+        )
 
         return gains, gain_flags, params, param_flags
 
