@@ -195,8 +195,7 @@ class DelayAndTec(ParameterizedGain):
                 ffactor = 1 #1e8
                 invfreq *= ffactor
 
-                # delta_freq is the smallest difference between the frequency
-                # values
+                # delta_freq is the smallest difference between the frequency values
                 delta_freqt = invfreq[-2] - invfreq[-1] #frequency resolution
                 max_tec = 2 * np.pi / delta_freqt
                 nyq_rate = 1./(2*(invfreq.max() - invfreq.min()))
@@ -233,8 +232,8 @@ class DelayAndTec(ParameterizedGain):
                 tec_est[~valid_ant] = 0
 
                 
-                path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd_solved/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd_solved/"
                 path01 = ""
 
                 path0 = path00+path01
@@ -266,7 +265,7 @@ class DelayAndTec(ParameterizedGain):
                             params[t, uf, p, 0, 1] = delay_est[p, 0]
                             params[t, uf, p, 0, 2] = tec_est[p, 1]
                             params[t, uf, p, 0, 3] = delay_est[p, 1]
-                            
+
         delay_and_tec_params_to_gains(
             params,
             gains,
