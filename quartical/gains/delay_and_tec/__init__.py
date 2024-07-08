@@ -86,6 +86,15 @@ class DelayAndTec(ParameterizedGain):
         f_map = term_kwargs[f"{term_spec.name}_param_freq_map"]
         _, n_chan, n_ant, n_dir, n_corr = gains.shape
 
+
+        #what about dir_maps?
+        dir_maps = np.zeros(1, dtype=np.int32)
+
+        #what about row_map and row_weights?
+        row_map = ms_inputs.ROW_MAP
+        row_weights = ms_inputs.ROW_WEIGHTS
+
+
         # We only need the baselines which include the ref_ant.
         sel = np.where((a1 == ref_ant) | (a2 == ref_ant))
         a1 = a1[sel]
@@ -98,6 +107,7 @@ class DelayAndTec(ParameterizedGain):
 
         utint = np.unique(t_map)
         ufint = np.unique(f_map)
+
 
         if n_corr == 1:
             n_paramt = 1 #number of parameters in TEC
@@ -140,116 +150,36 @@ class DelayAndTec(ParameterizedGain):
                 ##in inverse frequency domain
                 invfreq = 1./chan_freq
 
-
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
-                #Obtain the delay-related peak
-                delta_freqk = chan_freq[1] - chan_freq[0]
-                #Maximum reconstructable delay (in time)
-                max_delay = (2*np.pi)/delta_freqk
-                nyq_rate0 = 1./(2*(chan_freq.max() - chan_freq.min()))
-                
-                # nk = int(max_delay/nyq_rate0)
-                nk = int(np.ceil(2 ** 15 / sel_n_chan)) * sel_n_chan
-
-                
-                # fft_datak = np.abs(
-                #     np.fft.fft(fsel_data, n=n, axis=1)
-                # )
-                # fft_datak = np.fft.fftshift(fft_datak, axes=1)
-
-                fft_freqk = np.fft.fftfreq(nk, delta_freqk)
-                fft_freqk = np.fft.fftshift(fft_freqk)
 
                 #Initialise array to contain delay estimates
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
-
-                #Let me try using the nufft for the delay estimation as well
-                fft_datak = np.zeros((n_ant, nk, n_paramk), dtype=fsel_data.dtype)
-
-                for k in range(n_paramk):
-                    #must fix this - fsel_data must be dependent on number of correlations
-                    if k == 0:
-                        datak = fsel_data[:, :, 0]
-                    elif k == 1:
-                        datak = fsel_data[:, :, -1]
-                    else:
-                        raise ValueError("Unsupported number of parameters for delay.")
-
-                    vis_finufft = finufft.nufft1d3(
-                        2 * np.pi * chan_freq,
-                        datak,
-                        fft_freqk,
-                        eps=1e-6,
-                        isign=-1
-                    )
-                    fft_datak[:, :, k] = vis_finufft
-                    fft_data_pk = np.abs(vis_finufft)
-                    delay_est = fft_freqk[np.argmax(fft_data_pk, axis=1)]
-                
-                delay_est[~valid_ant] = 0
-
-                #Obtain the tec-related peak
-                ##factor for rescaling frequency
-                ffactor = 1 #1e8
-                invfreq *= ffactor
-
-                # delta_freq is the smallest difference between the frequency values
-                delta_freqt = invfreq[-2] - invfreq[-1] #frequency resolution
-                max_tec = 2 * np.pi / delta_freqt
-                nyq_rate = 1./(2*(invfreq.max() - invfreq.min()))
-                sr = max_tec #sampling_rate
-
-                # choosing resolution
-                nt = int(max_tec/ nyq_rate)
-
-                fft_freqt = np.linspace(0.5*-sr, 0.5*sr, nt)
+                delay_est, fft_arrk, fft_freqk = initial_estimates(
+                    fsel_data, delay_est, freq, valid_ant, type="k"
+                )
 
                 tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
-                fft_datat = np.zeros((n_ant, nt, n_paramt), dtype=fsel_data.dtype)
-
-                for k in range(n_paramt):
-                    if k == 0:
-                        datat = fsel_data[:, :, 0]
-                    elif k == 1:
-                        datat = fsel_data[:, :, -1]
-                    else:
-                        raise ValueError("Unsupported number of parameters for TEC.")
-
-                    vis_finufft = finufft.nufft1d3(
-                        2 * np.pi * invfreq,
-                        datat,
-                        fft_freqt,
-                        eps=1e-6,
-                        isign=-1
-                        )
-                    
-                    fft_datat[:, :, k] = vis_finufft
-                    fft_data_pt = np.abs(vis_finufft)
-                    tec_est = fft_freqt[np.argmax(fft_data_pt, axis=1)]
-
-                tec_est[~valid_ant] = 0
+                tec_est, fft_arrt, fft_freqt = initial_estimates(
+                    fsel_data, tec_est, invfreq, valid_ant, type="t"
+                )
 
                 
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd_solved/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingdelay/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingdelayb/"
-
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtec/"
                 path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtecb/"
-
-
                 path01 = ""
 
                 path0 = path00+path01
                 np.save(path0+"delayest.npy", delay_est)
-                np.save(path0+"delay_fftarr.npy", fft_datak)
+                np.save(path0+"delay_fftarr.npy", fft_arrk)
                 np.save(path0+"delay_fft_freq.npy", fft_freqk)
-
                 np.save(path0+"tecest.npy", tec_est)
-                np.save(path0+"tec_fftarr.npy", fft_datat)
+                np.save(path0+"tec_fftarr.npy", fft_arrt)
                 np.save(path0+"tec_fft_freq.npy", fft_freqt)
 
 
@@ -284,3 +214,66 @@ class DelayAndTec(ParameterizedGain):
         apply_gain_flags_to_gains(gain_flags, gains)
 
         return gains, gain_flags, params, param_flags
+
+
+    def initial_estimates(fsel_data, est_arr, freq, valid_ant, type="k"):
+        """
+        This function return the set of initial estimates for each param in params.
+        type is either k (delay) or t (tec).
+
+        """
+        
+        n_ant, n_param = est_arr.shape
+
+        dfreq = freq[-2] - freq[-1]
+        #Maximum reconstructable delta
+        max_delta = (2*np.pi)/ dfreq
+        nyq_rate = 1./ (2*(freq.max() - freq.min()))
+        nbins = int(max_tec/ nyq_rate)
+
+        if type == "k":
+            fft_freq = np.fft.fftfreq(nbins, dfreq)
+            fft_freq = np.fft.fftshift(fft_freq)
+
+            #when not using finufft
+            # fft_arr = np.abs(
+            #     np.fft.fft(fsel_data, n=nbins, axis=1)
+            # )
+            # fft_arr = np.fft.fftshift(fft_arr, axes=1)
+        elif type == "t":
+            ##factor for rescaling frequency
+            ffactor = 1 #1e8
+            freq *= ffactor
+            fft_freq = np.linspace(0.5*-max_delta, 0.5*max_delta, nbins)
+        else:
+            raise TypeError("Unsupported parameter type.")
+
+        fft_arr = np.zeros((n_ant, nbins, n_param), dtype=fsel_data.dtype)
+
+        for i in range(n_param):
+            if i == 0:
+                datak = fsel_data[:, :, 0]
+            elif i == 1:
+                datak = fsel_data[:, :, -1]
+            else:
+                raise ValueError("Unsupported number of parameters for delay.")
+
+            vis_finufft = finufft.nufft1d3(
+                2 * np.pi * freq,
+                datak,
+                fft_freq,
+                eps=1e-6,
+                isign=-1
+            )
+            fft_arr[:, :, i] = vis_finufft
+            est_arr[:, i] = fft_freq[np.argmax(np.abs(vis_finufft), axis=1)]
+        
+        est_arr[~valid_ant] = 0
+
+        return est_arr, fft_arr, fft_freq
+
+
+
+
+          
+
