@@ -11,6 +11,8 @@ from quartical.gains.general.flagging import (
     apply_gain_flags_to_gains,
     apply_param_flags_to_params
 )
+from quartical.gains.general.generics import compute_corrected_residual
+
 
 # Overload the default measurement set inputs to include the frequencies.
 ms_inputs = namedtuple(
@@ -82,17 +84,19 @@ class DelayAndTec(ParameterizedGain):
         a1 = ms_kwargs["ANTENNA1"]
         a2 = ms_kwargs["ANTENNA2"]
         chan_freq = ms_kwargs["CHAN_FREQ"]
+        row_map = ms_kwargs["ROW_MAP"]
+        row_weights = ms_kwargs["ROW_WEIGHTS"]
         t_map = term_kwargs[f"{term_spec.name}_time_map"]
         f_map = term_kwargs[f"{term_spec.name}_param_freq_map"]
         _, n_chan, n_ant, n_dir, n_corr = gains.shape
 
 
         #what about dir_maps?
-        dir_maps = np.zeros(1, dtype=np.int32)
+        # dir_maps = np.zeros(1, dtype=np.int32)
+        dir_maps = (term_kwargs[f"{term_spec.name}_dir_map"],)
 
-        #what about row_map and row_weights?
-        row_map = ms_inputs.ROW_MAP
-        row_weights = ms_inputs.ROW_WEIGHTS
+        print("row_map", row_map)
+        print("row_weights", row_weights)
 
 
         # We only need the baselines which include the ref_ant.
@@ -158,12 +162,12 @@ class DelayAndTec(ParameterizedGain):
 
                 #Initialise array to contain delay estimates
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
-                delay_est, fft_arrk, fft_freqk = initial_estimates(
-                    fsel_data, delay_est, freq, valid_ant, type="k"
+                delay_est, fft_arrk, fft_freqk = self.initial_estimates(
+                    fsel_data, delay_est, chan_freq, valid_ant, type="k"
                 )
 
                 tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
-                tec_est, fft_arrt, fft_freqt = initial_estimates(
+                tec_est, fft_arrt, fft_freqt = self.initial_estimates(
                     fsel_data, tec_est, invfreq, valid_ant, type="t"
                 )
 
@@ -173,7 +177,9 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingdelay/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingdelayb/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtec/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtecb/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtecb/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt12_tandd/"
+
                 path01 = ""
 
                 path0 = path00+path01
@@ -300,11 +306,14 @@ class DelayAndTec(ParameterizedGain):
             term_kwargs[f"{self.name}_param_freq_map"],
         )
 
+        print(type(row_map), type(row_weights))
+        print(n_corr)
+
         # gain_tuple spans from the different gain types, here we are only \ 
         # considering one gain type (delay_and_tec).
         gain_tuple = (gains,)
         corrected_data = compute_corrected_residual(
-            data, gain_tuple, a1, a2, t_map, f_map, dir_maps, row_map, row_weights, corr_mode
+            data, gain_tuple, a1, a2, t_map, f_map, dir_maps, row_map, row_weights, 1
         )
 
         #A second round of estimation
@@ -319,7 +328,7 @@ class DelayAndTec(ParameterizedGain):
             np.add.at(
                 ref_data,
                 ant_map,
-                data[sel]
+                corrected_data[sel]
             )
             np.add.at(
                 counts,
@@ -345,12 +354,12 @@ class DelayAndTec(ParameterizedGain):
 
                 #Initialise array to contain delay estimates
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
-                delay_est, fft_arrk, fft_freqk = initial_estimates(
+                delay_est, fft_arrk, fft_freqk = self.initial_estimates(
                     fsel_data, delay_est, freq, valid_ant, type="k"
                 )
 
                 tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
-                tec_est, fft_arrt, fft_freqt = initial_estimates(
+                tec_est, fft_arrt, fft_freqt = self.initial_estimates(
                     fsel_data, tec_est, invfreq, valid_ant, type="t"
                 )
 
@@ -483,7 +492,7 @@ class DelayAndTec(ParameterizedGain):
         return gains, gain_flags, params, param_flags
 
 
-    def initial_estimates(fsel_data, est_arr, freq, valid_ant, type="k"):
+    def initial_estimates(self, fsel_data, est_arr, freq, valid_ant, type="k"):
         """
         This function return the set of initial estimates for each param in params.
         type is either k (delay) or t (tec).
@@ -492,11 +501,11 @@ class DelayAndTec(ParameterizedGain):
         
         n_ant, n_param = est_arr.shape
 
-        dfreq = freq[-2] - freq[-1]
+        dfreq = np.abs(freq[-2] - freq[-1])
         #Maximum reconstructable delta
         max_delta = (2*np.pi)/ dfreq
         nyq_rate = 1./ (2*(freq.max() - freq.min()))
-        nbins = int(max_tec/ nyq_rate)
+        nbins = int(max_delta/ nyq_rate)
 
         if type == "k":
             fft_freq = np.fft.fftfreq(nbins, dfreq)
@@ -538,9 +547,3 @@ class DelayAndTec(ParameterizedGain):
         est_arr[~valid_ant] = 0
 
         return est_arr, fft_arr, fft_freq
-
-
-
-
-          
-
