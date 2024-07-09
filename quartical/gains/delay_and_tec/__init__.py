@@ -12,6 +12,12 @@ from quartical.gains.general.flagging import (
     apply_param_flags_to_params
 )
 from quartical.gains.general.generics import compute_corrected_residual
+# from numba import njit
+
+
+# @njit
+# def bar(string):
+#     pass
 
 
 # Overload the default measurement set inputs to include the frequencies.
@@ -57,6 +63,7 @@ class DelayAndTec(ParameterizedGain):
 
         return [n.format(c) for c in param_corr for n in template]
 
+
     def init_term(self, term_spec, ref_ant, ms_kwargs, term_kwargs):
         """Initialise the gains (and parameters)."""
 
@@ -94,10 +101,6 @@ class DelayAndTec(ParameterizedGain):
         #what about dir_maps?
         # dir_maps = np.zeros(1, dtype=np.int32)
         dir_maps = (term_kwargs[f"{term_spec.name}_dir_map"],)
-
-        print("row_map", row_map)
-        print("row_weights", row_weights)
-
 
         # We only need the baselines which include the ref_ant.
         sel = np.where((a1 == ref_ant) | (a2 == ref_ant))
@@ -306,14 +309,12 @@ class DelayAndTec(ParameterizedGain):
             term_kwargs[f"{self.name}_param_freq_map"],
         )
 
-        print(type(row_map), type(row_weights))
-        print(n_corr)
 
         # gain_tuple spans from the different gain types, here we are only \ 
         # considering one gain type (delay_and_tec).
         gain_tuple = (gains,)
         corrected_data = compute_corrected_residual(
-            data, gain_tuple, a1, a2, t_map, f_map, dir_maps, row_map, row_weights, 1
+            data, gain_tuple, a1, a2, t_map, f_map, dir_maps, row_map, row_weights, n_corr
         )
 
         #A second round of estimation
