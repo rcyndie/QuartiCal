@@ -344,12 +344,12 @@ class DelayAndTec(ParameterizedGain):
                         if n_corr == 1:
                             if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
                                 #delay is dominant >> only assign delay
-                                params[t, uf, q, 0, 0] = -tec_est[q]
-                                params[t, uf, q, 0, 1] = 0
-                            else:
-                                #tec is dominant >> only assign tec
                                 params[t, uf, q, 0, 0] = 0
                                 params[t, uf, q, 0, 1] = -delay_est[q]
+                            else:
+                                #tec is dominant >> only assign tec
+                                params[t, uf, q, 0, 0] = -tec_est[q]
+                                params[t, uf, q, 0, 1] = 0
                         elif n_corr > 1:
                             if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
                                 #only assign delay
@@ -373,12 +373,12 @@ class DelayAndTec(ParameterizedGain):
                         if n_corr == 1:
                             if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
                                 #delay is dominant >> only assign delay
-                                params[t, uf, p, 0, 0] = tec_est[p]
-                                params[t, uf, p, 0, 1] = 0
-                            else:
-                                #tec is dominant >> only assign tec
                                 params[t, uf, p, 0, 0] = 0
                                 params[t, uf, p, 0, 1] = delay_est[p]
+                            else:
+                                #tec is dominant >> only assign tec
+                                params[t, uf, p, 0, 0] = tec_est[p]
+                                params[t, uf, p, 0, 1] = 0
                         elif n_corr > 1:
                             if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
                                 #only assign delay
