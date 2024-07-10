@@ -189,7 +189,9 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingtecb/"
 
                 #Tweaking the selection criteria
-                path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelay_altered/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelay_altered/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelayb_altered/"
+
 
                 path01 = ""
 
