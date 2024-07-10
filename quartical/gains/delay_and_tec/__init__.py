@@ -423,7 +423,7 @@ class DelayAndTec(ParameterizedGain):
 
         dfreq = np.abs(freq[-2] - freq[-1])
         #Maximum reconstructable delta
-        max_delta = (2*np.pi)/ dfreq
+        max_delta = 1/ dfreq
         nyq_rate = 1./ (2*(freq.max() - freq.min()))
         nbins = int(max_delta/ nyq_rate)
 
