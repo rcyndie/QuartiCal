@@ -12,12 +12,7 @@ from quartical.gains.general.flagging import (
     apply_param_flags_to_params
 )
 from quartical.gains.general.generics import compute_corrected_residual
-# from numba import njit
 
-
-# @njit
-# def bar(string):
-#     pass
 
 
 # Overload the default measurement set inputs to include the frequencies.
@@ -182,15 +177,12 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtec/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtecb/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt12_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt12_tandd_solved/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt12_tandd_solved/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelay/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelayb/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingtec/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingtecb/"
 
-                #Tweaking the selection criteria
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelay_altered/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelayb_altered/"
 
 
                 path01 = ""
