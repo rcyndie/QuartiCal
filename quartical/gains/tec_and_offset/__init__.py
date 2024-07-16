@@ -137,51 +137,92 @@ class TecAndOffset(ParameterizedGain):
             )
 
             for uf in ufint:
-
                 fsel = np.where(f_map == uf)[0]
                 sel_n_chan = fsel.size
-                n = int(np.ceil(2 ** 15 / sel_n_chan)) * sel_n_chan
 
+                # fsel_data = visibilities corresponding to the fsel
+                # frequencies
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
+                ##in inverse frequency domain
+                invfreq = 1./chan_freq
 
-                fft_data = np.abs(
-                    np.fft.fft(fsel_data, n=n, axis=1)
+
+                #Obtain the tec-related peak
+                ##factor for rescaling frequency
+                ffactor = 1 #1e8
+                invfreq *= ffactor
+
+                # delta_freq is the smallest difference between the frequency
+                # values
+                delta_freqt = invfreq[-2] - invfreq[-1] #frequency resolution
+                max_tec = 2 * np.pi / delta_freqt
+                nyq_rate = 1./(2*(invfreq.max() - invfreq.min()))
+                sr = max_tec #sampling_rate
+
+                # choosing resolution
+                nt = int(max_tec/ nyq_rate)
+                print(nt, "this is nt")
+
+                # domain to pick tec_est from
+                fft_freqt = np.linspace(0.5*-sr, 0.5*sr, nt)
+
+
+                tec_est = np.zeros((n_ant, n_param), dtype=np.float64)
+                fft_datat = np.zeros(
+                    (n_ant, nt, n_param), dtype=fsel_data.dtype
                 )
-                fft_data = np.fft.fftshift(fft_data, axes=1)
 
-                delta_freq = chan_freq[1] - chan_freq[0]
-                fft_freq = np.fft.fftfreq(n, delta_freq)
-                fft_freq = np.fft.fftshift(fft_freq)
+                for k in range(n_param):
+                    vis_finufft = finufft.nufft1d3(
+                        2 * np.pi * invfreq,
+                        fsel_data[:, :, k],
+                        fft_freqt,
+                        eps=1e-6,
+                        isign=-1
+                    )
+                    fft_datat[:, :, k] = vis_finufft
+                    fft_data_pk = np.abs(vis_finufft)
+                    tec_est[:, k] = fft_freqt[np.argmax(fft_data_pk, axis=1)]
 
-                delay_est_ind_00 = np.argmax(fft_data[..., 0], axis=1)
-                delay_est_00 = fft_freq[delay_est_ind_00]
-                delay_est_00[~valid_ant] = 0
+                tec_est[~valid_ant, :] = 0
 
-                if n_corr > 1:
-                    delay_est_ind_11 = np.argmax(fft_data[..., -1], axis=1)
-                    delay_est_11 = fft_freq[delay_est_ind_11]
-                    delay_est_11[~valid_ant] = 0
 
-                for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
-                    if p == ref_ant:
-                        params[t, uf, q, 0, 1] = -delay_est_00[q]
-                        if n_corr > 1:
-                            params[t, uf, q, 0, 3] = -delay_est_11[q]
-                    else:
-                        params[t, uf, p, 0, 1] = delay_est_00[p]
-                        if n_corr > 1:
-                            params[t, uf, p, 0, 3] = delay_est_11[p]
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt14b/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt15b/"
 
-        delay_and_offset_params_to_gains(
+
+                path01 = ""
+
+                path0 = path00+path01
+
+                np.save(path0+"tecest.npy", tec_est)
+                np.save(path0+"tec_fftarr.npy", fft_datat)
+                np.save(path0+"tec_fft_freq.npy", fft_freqt)
+
+
+            for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
+                if p == ref_ant:
+                    params[t, uf, q, 0, 1] = -tec_est[q, 0]
+                    if n_corr > 1:
+                        params[t, uf, q, 0, 3] = -tec_est[q, 1]
+                elif q == ref_ant:
+                    params[t, uf, p, 0, 1] = tec_est[p, 0]
+                    if n_corr > 1:
+                        params[t, uf, p, 0, 3] = tec_est[p, 1]
+
+
+        # Convert the parameters into gains using the "set" of dominant effects.
+        tec_and_offset_params_to_gains(
             params,
             gains,
             ms_kwargs["CHAN_FREQ"],
             term_kwargs[f"{self.name}_param_freq_map"],
         )
 
-        apply_param_flags_to_params(param_flags, params, 0)
+
+        # Apply flags to gains and parameters.
+        apply_param_flags_to_params(param_flags, params, 1)
         apply_gain_flags_to_gains(gain_flags, gains)
 
         return gains, gain_flags, params, param_flags
-
