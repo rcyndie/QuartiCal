@@ -1,4 +1,5 @@
 import numpy as np
+import finufft
 from collections import namedtuple
 from quartical.gains.conversion import no_op, trig_to_angle
 from quartical.gains.parameterized_gain import ParameterizedGain
@@ -75,7 +76,7 @@ class TecAndOffset(ParameterizedGain):
         )
 
         # Convert the parameters into gains.
-        delay_and_offset_params_to_gains(
+        tec_and_offset_params_to_gains(
             params,
             gains,
             ms_kwargs["CHAN_FREQ"],
@@ -110,6 +111,13 @@ class TecAndOffset(ParameterizedGain):
 
         utint = np.unique(t_map)
         ufint = np.unique(f_map)
+
+        if n_corr == 1:
+            n_param = 1 #number of parameters in TEC
+        elif n_corr in (2, 4):
+            n_param = 2
+        else:
+            raise ValueError("Unsupported number of correlations.")
 
         for ut in utint:
             sel = np.where((t_map == ut) & (a1 != a2))
@@ -188,8 +196,8 @@ class TecAndOffset(ParameterizedGain):
                 tec_est[~valid_ant, :] = 0
 
 
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt14b/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt15b/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt14b/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt15b/"
 
 
                 path01 = ""
