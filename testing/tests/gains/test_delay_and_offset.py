@@ -176,6 +176,30 @@ def test_gains(cmp_gain_xds_lod, true_gain_list):
         np.testing.assert_array_almost_equal(true_gain, solved_gain)
 
 
+def test_init_term(cmp_gain_xds_lod, true_gain_list):
+    #Either consider iter_recipe = [0] or just the iteration 0.
+
+    solved_gain_xds = cmp_gain_xds_lod[0]
+    solved_gain_xds = solved_gain_dict["G"]
+    solved_gain, solved_flags = da.compute(solved_gain_xds.gains.data,
+                                            solved_gain_xds.gain_flags.data)
+    true_gain = true_gain.compute()  # TODO: This could be done elsewhere.
+
+    n_corr = true_gain.shape[-1]
+
+    solved_gain = reference_gains(solved_gain, n_corr)
+    true_gain = reference_gains(true_gain, n_corr)
+
+    true_gain[np.where(solved_flags)] = 0
+    solved_gain[np.where(solved_flags)] = 0
+
+    # To ensure the missing antenna handling doesn't render this test
+    # useless, check that we have non-zero entries first.
+    assert np.any(solved_gain), "All gains are zero!"
+    #Not necessarily almost equal; maybe just consider a typical difference between the two
+    np.allclose(true_gain, solved_gain, atol=1e-9)
+
+
 def test_gain_flags(cmp_gain_xds_lod):
 
     for solved_gain_dict in cmp_gain_xds_lod:
