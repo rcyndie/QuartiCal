@@ -232,13 +232,13 @@ class DelayAndTec(ParameterizedGain):
                 tec_est[~valid_ant] = 0
 
                 
-                path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd_solved/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingdelay/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingdelayb/"
 
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtec/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtecb/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtecb/"
 
 
                 path01 = ""
