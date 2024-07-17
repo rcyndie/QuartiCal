@@ -147,6 +147,9 @@ class DelayAndOffset(ParameterizedGain):
                 delay_est_00[~valid_ant] = 0
 
                 path00 = "/home/russeeawon/testing/thesis_figures/expt14a/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt15a/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt16a/"
+
 
                 path01 = ""
 
