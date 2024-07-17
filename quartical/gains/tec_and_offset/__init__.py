@@ -196,8 +196,9 @@ class TecAndOffset(ParameterizedGain):
                 tec_est[~valid_ant, :] = 0
 
 
-                path00 = "/home/russeeawon/testing/thesis_figures/expt14b/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt14b/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt15b/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt16b/"
 
 
                 path01 = ""
