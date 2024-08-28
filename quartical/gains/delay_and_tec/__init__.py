@@ -172,6 +172,8 @@ class DelayAndTec(ParameterizedGain):
                 
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt12_tandd/"
                 path00 = "/home/russeeawon/testing/thesis_figures/expt12_tandd_solved/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt12_tandd_solved_withnoise/"
+
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelay/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingdelayb/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt13_solvingtec/"
