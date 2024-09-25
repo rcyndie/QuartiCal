@@ -144,8 +144,8 @@ class Delay(ParameterizedGain):
                 delay_est_00[~valid_ant] = 0
 
 
-                path00 = "/home/russeeawon/testing/PKS1934/expt5/mad/"
-                # path00 = "/home/russeeawon/testing/PKS1934/expt5/nomad/"
+                # path00 = "/home/russeeawon/testing/PKS1934/expt5/mad/"
+                path00 = "/home/russeeawon/testing/PKS1934/expt5/nomad/"
 
                 path01 = ""
 
