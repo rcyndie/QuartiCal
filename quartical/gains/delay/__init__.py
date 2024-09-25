@@ -143,6 +143,18 @@ class Delay(ParameterizedGain):
                 delay_est_00 = fft_freq[delay_est_ind_00]
                 delay_est_00[~valid_ant] = 0
 
+
+                path00 = "/home/russeeawon/testing/PKS1934/expt5/mad/"
+                # path00 = "/home/russeeawon/testing/PKS1934/expt5/nomad/"
+
+                path01 = ""
+
+                path0 = path00+path01
+                np.save(path0+"delayest.npy", delay_est_00)
+                np.save(path0+"delay_fftarr.npy", fft_data)
+                np.save(path0+"delay_fft_freq.npy", fft_freq)
+
+
                 if n_corr > 1:
                     delay_est_ind_11 = np.argmax(fft_data[..., -1], axis=1)
                     delay_est_11 = fft_freq[delay_est_ind_11]

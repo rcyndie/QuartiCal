@@ -173,6 +173,7 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/expt1/"
                 # path00 = "/home/russeeawon/testing/expt2/"
                 # path00 = "/home/russeeawon/testing/PKS1934/expt3/"
+                path00 = "/home/russeeawon/testing/A3562/expt3/"
 
 
 
