@@ -170,22 +170,16 @@ class DelayAndTec(ParameterizedGain):
                 )
 
                 
-                # path00 = "/home/russeeawon/testing/expt1/"
-                # path00 = "/home/russeeawon/testing/expt2/"
-                path00 = "/home/russeeawon/testing/PKS1934/expt3/"
-                # path00 = "/home/russeeawon/testing/A3562/expt3/"
-
-
-
+                path00 = "/home/russeeawon/testing/expt21_tandd/"
                 path01 = ""
 
                 path0 = path00+path01
-                np.save(path0+"delayest0.npy", delay_est)
-                np.save(path0+"delay_fftarr0.npy", fft_arrk)
-                np.save(path0+"delay_fft_freq0.npy", fft_freqk)
-                np.save(path0+"tecest0.npy", tec_est)
-                np.save(path0+"tec_fftarr0.npy", fft_arrt)
-                np.save(path0+"tec_fft_freq0.npy", fft_freqt)
+                np.save(path0+"delayest0_t{}.npy".format(ut), delay_est)
+                np.save(path0+"delay_fftarr0_t{}.npy".format(ut), fft_arrk)
+                np.save(path0+"delay_fft_freq0_t{}.npy".format(ut), fft_freqk)
+                np.save(path0+"tecest0_t{}.npy".format(ut), tec_est)
+                np.save(path0+"tec_fftarr0_t{}.npy".format(ut), fft_arrt)
+                np.save(path0+"tec_fft_freq0_t{}.npy".format(ut), fft_freqt)
 
 
                 #Selecting the dominant peak and setting the other parameter to zero.
@@ -314,12 +308,12 @@ class DelayAndTec(ParameterizedGain):
                     fsel_data, tec_est, invfreq, valid_ant, type="t"
                 )
 
-                np.save(path0+"delayest1.npy", delay_est)
-                np.save(path0+"delay_fftarr1.npy", fft_arrk)
-                np.save(path0+"delay_fft_freq1.npy", fft_freqk)
-                np.save(path0+"tecest1.npy", tec_est)
-                np.save(path0+"tec_fftarr1.npy", fft_arrt)
-                np.save(path0+"tec_fft_freq1.npy", fft_freqt)
+                np.save(path0+"delayest1_t{}.npy".format(ut), delay_est)
+                np.save(path0+"delay_fftarr1_t{}.npy".format(ut), fft_arrk)
+                np.save(path0+"delay_fft_freq1_t{}.npy".format(ut), fft_freqk)
+                np.save(path0+"tecest1_t{}.npy".format(ut), tec_est)
+                np.save(path0+"tec_fftarr1_t{}.npy".format(ut), fft_arrt)
+                np.save(path0+"tec_fft_freq1_t{}.npy".format(ut), fft_freqt)
 
                 #select again!
                 #Attempting to tweak the peak selection for the previously non-dominant peak
