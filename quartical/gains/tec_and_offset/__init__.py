@@ -196,16 +196,17 @@ class TecAndOffset(ParameterizedGain):
                 tec_est[~valid_ant, :] = 0
 
 
-                # path00 = "/home/russeeawon/testing/A3562/expt9/"
-                path00 = "/home/russeeawon/testing/PKS1934/expt2/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt17b/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt18b/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt19b/"
 
                 path01 = ""
 
                 path0 = path00+path01
 
-                np.save(path0+"tecest.npy", tec_est)
-                np.save(path0+"tec_fftarr.npy", fft_datat)
-                np.save(path0+"tec_fft_freq.npy", fft_freqt)
+                np.save(path0+"tecest_t{}.npy".format(ut), tec_est)
+                np.save(path0+"tec_fftarr_t{}.npy".format(ut), fft_datat)
+                np.save(path0+"tec_fft_freq_t{}.npy".format(ut), fft_freqt)
 
 
             for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
