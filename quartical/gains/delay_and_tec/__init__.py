@@ -170,7 +170,12 @@ class DelayAndTec(ParameterizedGain):
                 )
 
                 
-                path00 = "/home/russeeawon/testing/expt21_tandd/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
+
+                # path00 = "/home/russeeawon/testing/lofar_expts/expt3/"
+
                 path01 = ""
 
                 path0 = path00+path01
@@ -252,6 +257,7 @@ class DelayAndTec(ParameterizedGain):
         #Save the midway gains
         np.save(path0+"gains0.npy", gains)
 
+        np.save(path0+"data0.npy", data)
 
         # gain_tuple spans from the different gain types, here we are only \ 
         # considering one gain type (delay_and_tec).
@@ -260,6 +266,8 @@ class DelayAndTec(ParameterizedGain):
         corrected_data = compute_corrected_residual(
             data, gain_tuple, a1, a2, (t_map,), (f_map,), dir_maps, row_map, row_weights, n_corr
         )
+
+        np.save(path0+"data1.npy", corrected_data)
 
         #A second round of estimation
         for ut in utint:
