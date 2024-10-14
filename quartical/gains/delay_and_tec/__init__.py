@@ -232,25 +232,16 @@ class DelayAndTec(ParameterizedGain):
                 tec_est[~valid_ant] = 0
 
                 
-                path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt10_tandd_solved/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingdelay/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingdelayb/"
-
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtec/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt11_solvingtecb/"
-
-
+                path00 = "/home/russeeawon/testing/thesis_figures/expt20_tandd/"
                 path01 = ""
 
                 path0 = path00+path01
-                np.save(path0+"delayest.npy", delay_est)
-                np.save(path0+"delay_fftarr.npy", fft_datak)
-                np.save(path0+"delay_fft_freq.npy", fft_freqk)
-
-                np.save(path0+"tecest.npy", tec_est)
-                np.save(path0+"tec_fftarr.npy", fft_datat)
-                np.save(path0+"tec_fft_freq.npy", fft_freqt)
+                np.save(path0+"delayest0_t{}.npy".format(ut), delay_est)
+                np.save(path0+"delay_fftarr0_t{}.npy".format(ut), fft_datak)
+                np.save(path0+"delay_fft_freq0_t{}.npy".format(ut), fft_freqk)
+                np.save(path0+"tecest0_t{}.npy".format(ut), tec_est)
+                np.save(path0+"tec_fftarr0_t{}.npy".format(ut), fft_datat)
+                np.save(path0+"tec_fft_freq0_t{}.npy".format(ut), fft_freqt)
 
 
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
