@@ -172,8 +172,8 @@ class DelayAndTec(ParameterizedGain):
                 
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt21_nosolve/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_nosolve/"
 
 
                 # path00 = "/home/russeeawon/testing/lofar_expts/expt3/"
@@ -261,12 +261,14 @@ class DelayAndTec(ParameterizedGain):
 
         np.save(path0+"data0.npy", data)
 
+        
         # gain_tuple spans from the different gain types, here we are only \ 
         # considering one gain type (delay_and_tec).
         gain_tuple = (gains,)
         #tuples required for time and frequency maps 
         corrected_data = compute_corrected_residual(
-            data, gain_tuple, a1, a2, (t_map,), (f_map,), dir_maps, row_map, row_weights, n_corr
+            data, gain_tuple, a1, a2, (t_map,), (term_kwargs[f"{term_spec.name}_freq_map"],), \
+            dir_maps, row_map, row_weights, n_corr
         )
 
         np.save(path0+"data1.npy", corrected_data)
@@ -330,14 +332,13 @@ class DelayAndTec(ParameterizedGain):
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
                     if p == ref_ant:
                         if n_corr == 1:
-                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
-                                #delay is dominant >> only assign delay
-                                params[t, uf, q, 0, 0] = 0
-                                params[t, uf, q, 0, 1] = -delay_est[q]
-                            else:
-                                #tec is dominant >> only assign tec
-                                params[t, uf, q, 0, 0] = -tec_est[q]
-                                params[t, uf, q, 0, 1] = 0
+                            #if the dominant peak is delay + the estimate is not zero, then assign to delay
+                            if delay_est[q] != 0. and tec_est[q] != 0.:
+                                if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
+                                    params[t, uf, q, 0, 1] = -delay_est[q]
+                                else:
+                                    params[t, uf, q, 0, 0] = -tec_est[q]
+
                         elif n_corr > 1:
                             if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
                                 #only assign delay
@@ -359,14 +360,13 @@ class DelayAndTec(ParameterizedGain):
 
                     else:
                         if n_corr == 1:
-                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
-                                #delay is dominant >> only assign delay
-                                params[t, uf, p, 0, 0] = 0
-                                params[t, uf, p, 0, 1] = delay_est[p]
-                            else:
-                                #tec is dominant >> only assign tec
-                                params[t, uf, p, 0, 0] = tec_est[p]
-                                params[t, uf, p, 0, 1] = 0
+                            #if the dominant peak is delay + the estimate is not zero, then assign to delay
+                            if delay_est[p] != 0. and tec_est[p] != 0.:
+                                if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
+                                    params[t, uf, p, 0, 1] = delay_est[p]
+                                else:
+                                    params[t, uf, p, 0, 0] = tec_est[p]
+
                         elif n_corr > 1:
                             if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
                                 #only assign delay
