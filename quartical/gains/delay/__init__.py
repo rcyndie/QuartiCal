@@ -145,7 +145,9 @@ class Delay(ParameterizedGain):
 
 
                 # path00 = "/home/russeeawon/testing/PKS1934/expt5/mad/"
-                path00 = "/home/russeeawon/testing/PKS1934/expt5/nomad/"
+                # path00 = "/home/russeeawon/testing/PKS1934/expt5/nomad/"
+                # path00 = "/home/russeeawon/testing/PKS1934/expt6/mad/"
+                path00 = "/home/russeeawon/testing/PKS1934/expt6/nomad/"
 
                 path01 = ""
 
