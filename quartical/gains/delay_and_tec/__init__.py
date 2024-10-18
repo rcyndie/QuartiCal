@@ -175,9 +175,9 @@ class DelayAndTec(ParameterizedGain):
 
 
                 
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt21_nosolve/"
 
 
@@ -336,7 +336,6 @@ class DelayAndTec(ParameterizedGain):
                 np.save(path0+"tec_fftarr1_t{}.npy".format(ut), fft_arrt)
                 np.save(path0+"tec_fft_freq1_t{}.npy".format(ut), fft_freqt)
 
-                # import ipdb; ipdb.set_trace()
 
                 #select again!
                 #Attempting to tweak the peak selection for the previously non-dominant peak
@@ -390,6 +389,10 @@ class DelayAndTec(ParameterizedGain):
             ms_kwargs["CHAN_FREQ"],
             term_kwargs[f"{self.name}_param_freq_map"],
         )
+
+        #Save as no-solve gains
+        np.save(path0+"gains1.npy", gains)
+
 
         return gains, gain_flags, params, param_flags
 
