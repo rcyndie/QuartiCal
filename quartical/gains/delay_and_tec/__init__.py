@@ -233,6 +233,9 @@ class DelayAndTec(ParameterizedGain):
 
                 
                 path00 = "/home/russeeawon/testing/thesis_figures/expt20_tandd/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt20_solvingdelay/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt20_solvingtec/"
+
                 path01 = ""
 
                 path0 = path00+path01
@@ -270,6 +273,8 @@ class DelayAndTec(ParameterizedGain):
             ms_kwargs["CHAN_FREQ"],
             term_kwargs[f"{self.name}_param_freq_map"],
         )
+
+        np.save(path0+"gains1.npy", gains)
 
         apply_param_flags_to_params(param_flags, params, 0)
         apply_gain_flags_to_gains(gain_flags, gains)
