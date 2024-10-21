@@ -197,7 +197,8 @@ class TecAndOffset(ParameterizedGain):
 
 
                 # path00 = "/home/russeeawon/testing/A3562/expt9/"
-                path00 = "/home/russeeawon/testing/PKS1934/expt2/"
+                # path00 = "/home/russeeawon/testing/PKS1934/expt2/"
+                path00 = "/home/russeeawon/testing/SMC/expt1/"
 
                 path01 = ""
 
