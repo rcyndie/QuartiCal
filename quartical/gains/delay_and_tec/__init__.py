@@ -152,6 +152,7 @@ class DelayAndTec(ParameterizedGain):
                 
                 # nk = int(max_delay/nyq_rate0)
                 nk = int(np.ceil(2 ** 15 / sel_n_chan)) * sel_n_chan
+                nk = nk*4
 
                 
                 # fft_datak = np.abs(
@@ -203,6 +204,7 @@ class DelayAndTec(ParameterizedGain):
 
                 # choosing resolution
                 nt = int(max_tec/ nyq_rate)
+                nt = nt*6
 
                 fft_freqt = np.linspace(0.5*-sr, 0.5*sr, nt)
 
@@ -232,8 +234,8 @@ class DelayAndTec(ParameterizedGain):
                 tec_est[~valid_ant] = 0
 
                 
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt20_tandd/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt20_solvingdelay/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt20_tandd/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt20_solvingdelay/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt20_solvingtec/"
 
                 path01 = ""
