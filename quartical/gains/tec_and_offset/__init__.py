@@ -196,31 +196,29 @@ class TecAndOffset(ParameterizedGain):
                 tec_est[~valid_ant, :] = 0
 
 
+                for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
+                    if p == ref_ant:
+                        params[t, uf, q, 0, 1] = -tec_est[q, 0]
+                        if n_corr > 1:
+                            params[t, uf, q, 0, 3] = -tec_est[q, 1]
+                    elif q == ref_ant:
+                        params[t, uf, p, 0, 1] = tec_est[p, 0]
+                        if n_corr > 1:
+                            params[t, uf, p, 0, 3] = tec_est[p, 1]
+
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt17b/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt18b/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt19b/"
-                
+                path00 = "/home/russeeawon/testing/thesis_figures/expt19b/"                
                 # path00 = "/home/russeeawon/testing/lofar_expts/expt2/"
-
 
                 path01 = ""
 
                 path0 = path00+path01
 
-                np.save(path0+"tecest_t{}.npy".format(ut), tec_est)
+                np.save(path0+"tecest_t{}.npy".format(ut), params[0, 0, :, 0, 1])
                 np.save(path0+"tec_fftarr_t{}.npy".format(ut), fft_datat)
                 np.save(path0+"tec_fft_freq_t{}.npy".format(ut), fft_freqt)
 
-
-            for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
-                if p == ref_ant:
-                    params[t, uf, q, 0, 1] = -tec_est[q, 0]
-                    if n_corr > 1:
-                        params[t, uf, q, 0, 3] = -tec_est[q, 1]
-                elif q == ref_ant:
-                    params[t, uf, p, 0, 1] = tec_est[p, 0]
-                    if n_corr > 1:
-                        params[t, uf, p, 0, 3] = tec_est[p, 1]
 
 
         # Convert the parameters into gains using the "set" of dominant effects.

@@ -174,24 +174,6 @@ class DelayAndTec(ParameterizedGain):
                     )
 
 
-                
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
-                path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt22_tandd/"
-
-                path01 = ""
-
-                path0 = path00+path01
-                np.save(path0+"delayest0_t{}.npy".format(ut), delay_est)
-                np.save(path0+"delay_fftarr0_t{}.npy".format(ut), fft_arrk)
-                np.save(path0+"delay_fft_freq0_t{}.npy".format(ut), fft_freqk)
-                np.save(path0+"tecest0_t{}.npy".format(ut), tec_est)
-                np.save(path0+"tec_fftarr0_t{}.npy".format(ut), fft_arrt)
-                np.save(path0+"tec_fft_freq0_t{}.npy".format(ut), fft_freqt)
-
-                
-
                 #Array of zeros and assign to 1 when selecting peak.
                 #Selecting the dominant peak and letting the other parameter as zero.
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
@@ -254,6 +236,30 @@ class DelayAndTec(ParameterizedGain):
                                 params_assigned[t, uf, p, 0, 2] = 1
 
 
+                
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt22_tandd/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt23_tandd/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt25_tandd/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt26_tandd/"
+                # path00 = "/home/russeeawon/testing/lofar_expts/expt3/"
+                # path00 = "/home/russeeawon/testing/lofar_expts/expt6/"
+
+                path01 = ""
+
+                path0 = path00+path01
+
+
+                np.save(path0+"delayest0_t{}.npy".format(ut), params[0, 0, :, 0, 1])
+                np.save(path0+"delay_fftarr0_t{}.npy".format(ut), fft_arrk)
+                np.save(path0+"delay_fft_freq0_t{}.npy".format(ut), fft_freqk)
+                np.save(path0+"tecest0_t{}.npy".format(ut), params[0, 0, :, 0, 0])
+                np.save(path0+"tec_fftarr0_t{}.npy".format(ut), fft_arrt)
+                np.save(path0+"tec_fft_freq0_t{}.npy".format(ut), fft_freqt)
+
+
         delay_and_tec_params_to_gains(
             params,
             gains,
@@ -264,6 +270,7 @@ class DelayAndTec(ParameterizedGain):
         #Save the midway gains
         np.save(path0+"gains0.npy", gains)
         np.save(path0+"data0.npy", data)
+        np.save(path0+"params0.npy", params)
 
         
         # gain_tuple spans from the different gain types, here we are only \ 
@@ -326,13 +333,6 @@ class DelayAndTec(ParameterizedGain):
                     )
 
 
-                np.save(path0+"delayest1_t{}.npy".format(ut), delay_est)
-                np.save(path0+"delay_fftarr1_t{}.npy".format(ut), fft_arrk)
-                np.save(path0+"delay_fft_freq1_t{}.npy".format(ut), fft_freqk)
-                np.save(path0+"tecest1_t{}.npy".format(ut), tec_est)
-                np.save(path0+"tec_fftarr1_t{}.npy".format(ut), fft_arrt)
-                np.save(path0+"tec_fft_freq1_t{}.npy".format(ut), fft_freqt)
-
 
                 #select again!
                 #Attempting to tweak the peak selection for the previously non-dominant peak
@@ -374,6 +374,15 @@ class DelayAndTec(ParameterizedGain):
                                 params[t, uf, p, 0, 2] = tec_est[p, 1]
                             else:
                                 params[t, uf, p, 0, 3] = delay_est[p, 1]
+
+
+
+                np.save(path0+"delayest1_t{}.npy".format(ut), params[0, 0, :, 0, 1])
+                np.save(path0+"delay_fftarr1_t{}.npy".format(ut), fft_arrk)
+                np.save(path0+"delay_fft_freq1_t{}.npy".format(ut), fft_freqk)
+                np.save(path0+"tecest1_t{}.npy".format(ut), params[0, 0, :, 0, 0])
+                np.save(path0+"tec_fftarr1_t{}.npy".format(ut), fft_arrt)
+                np.save(path0+"tec_fft_freq1_t{}.npy".format(ut), fft_freqt)
                             
 
 
@@ -389,6 +398,8 @@ class DelayAndTec(ParameterizedGain):
 
         #Save as no-solve gains
         np.save(path0+"gains1.npy", gains)
+        np.save(path0+"params1.npy", params)
+
 
 
         return gains, gain_flags, params, param_flags

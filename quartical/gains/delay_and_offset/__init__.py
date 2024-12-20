@@ -6,6 +6,7 @@ from quartical.gains.delay_and_offset.kernel import (
     delay_and_offset_solver,
     delay_and_offset_params_to_gains
 )
+import finufft
 from quartical.gains.general.flagging import (
     apply_gain_flags_to_gains,
     apply_param_flags_to_params
@@ -130,6 +131,8 @@ class DelayAndOffset(ParameterizedGain):
                 sel_n_chan = fsel.size
                 n = int(np.ceil(2 ** 15 / sel_n_chan)) * sel_n_chan
 
+
+
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
@@ -142,32 +145,17 @@ class DelayAndOffset(ParameterizedGain):
                 fft_freq = np.fft.fftfreq(n, delta_freq)
                 fft_freq = np.fft.fftshift(fft_freq)
 
+
                 delay_est_ind_00 = np.argmax(fft_data[..., 0], axis=1)
                 delay_est_00 = fft_freq[delay_est_ind_00]
                 delay_est_00[~valid_ant] = 0
 
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt17a/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt17a_n/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt18a/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt18a_n/"
-
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt19a/"
-
-                # path00 = "/home/russeeawon/testing/lofar_expts/expt1/"
-
-
-                path01 = ""
-
-                path0 = path00+path01
-
-                np.save(path0+"delayest_t{}.npy".format(ut), delay_est_00)
-                np.save(path0+"delay_fftarr_t{}.npy".format(ut), fft_data)
-                np.save(path0+"delay_fft_freq_t{}.npy".format(ut), fft_freq)
 
                 if n_corr > 1:
                     delay_est_ind_11 = np.argmax(fft_data[..., -1], axis=1)
                     delay_est_11 = fft_freq[delay_est_ind_11]
                     delay_est_11[~valid_ant] = 0
+
 
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
                     if p == ref_ant:
@@ -178,6 +166,24 @@ class DelayAndOffset(ParameterizedGain):
                         params[t, uf, p, 0, 1] = delay_est_00[p]
                         if n_corr > 1:
                             params[t, uf, p, 0, 3] = delay_est_11[p]
+
+
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt17a/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt17a_n/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt18a/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt18a_n/"
+                path00 = "/home/russeeawon/testing/thesis_figures/expt19a/"
+
+                # path00 = "/home/russeeawon/testing/lofar_expts/expt1/"
+
+                path01 = ""
+
+                path0 = path00+path01
+
+
+                np.save(path0+"delayest_t{}.npy".format(ut), params[0, 0, :, 0, 1])
+                np.save(path0+"delay_fftarr_t{}.npy".format(ut), fft_data)
+                np.save(path0+"delay_fft_freq_t{}.npy".format(ut), fft_freq)
 
         delay_and_offset_params_to_gains(
             params,
