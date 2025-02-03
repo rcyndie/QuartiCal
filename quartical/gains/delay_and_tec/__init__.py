@@ -173,28 +173,6 @@ class DelayAndTec(ParameterizedGain):
                     fsel_data, tec_est, invfreq, valid_ant, type="t"
                     )
 
-
-                
-                path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_nosolve/"
-
-
-                # path00 = "/home/russeeawon/testing/lofar_expts/expt3/"
-
-                path01 = ""
-
-                path0 = path00+path01
-                np.save(path0+"delayest0_t{}.npy".format(ut), delay_est)
-                np.save(path0+"delay_fftarr0_t{}.npy".format(ut), fft_arrk)
-                np.save(path0+"delay_fft_freq0_t{}.npy".format(ut), fft_freqk)
-                np.save(path0+"tecest0_t{}.npy".format(ut), tec_est)
-                np.save(path0+"tec_fftarr0_t{}.npy".format(ut), fft_arrt)
-                np.save(path0+"tec_fft_freq0_t{}.npy".format(ut), fft_freqt)
-
-                
-
                 #Array of zeros and assign to 1 when selecting peak.
                 #Selecting the dominant peak and letting the other parameter as zero.
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
@@ -217,7 +195,7 @@ class DelayAndTec(ParameterizedGain):
                                 #only assign tec
                                 params[t, uf, q, 0, 0] = -tec_est[q, 0]
                                 params_assigned[t, uf, q, 0, 0] = 1
-                            
+
                             if np.max(np.abs(fft_arrk[q, :, 1])**2) > np.max(np.abs(fft_arrt[q, :, 1])**2):
                                 #only assign delay
                                 params[t, uf, q, 0, 3] = -delay_est[q, 1]
@@ -264,21 +242,14 @@ class DelayAndTec(ParameterizedGain):
             term_kwargs[f"{self.name}_param_freq_map"],
         )
 
-        #Save the midway gains
-        np.save(path0+"gains0.npy", gains)
-        np.save(path0+"data0.npy", data)
-
-        
-        # gain_tuple spans from the different gain types, here we are only \ 
+        # gain_tuple spans from the different gain types, here we are only \
         # considering one gain type (delay_and_tec).
         gain_tuple = (gains,)
-        #tuples required for time and frequency maps 
+        #tuples required for time and frequency maps
         corrected_data = compute_corrected_residual(
             data, gain_tuple, a1, a2, (t_map,), (term_kwargs[f"{term_spec.name}_freq_map"],), \
             dir_maps, row_map, row_weights, n_corr
         )
-
-        np.save(path0+"data1.npy", corrected_data)
 
         #A second round of estimation
         for ut in utint:
@@ -317,7 +288,7 @@ class DelayAndTec(ParameterizedGain):
                 valid_ant = fsel_data.any(axis=(1, 2))
 
                 #Initialise array to contain delay and tec estimates
-                
+
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
                 delay_est, fft_arrk, fft_freqk = self.initial_estimates(
                     fsel_data, delay_est, chan_freq, valid_ant, type="k"
@@ -327,15 +298,6 @@ class DelayAndTec(ParameterizedGain):
                 tec_est, fft_arrt, fft_freqt = self.initial_estimates(
                     fsel_data, tec_est, invfreq, valid_ant, type="t"
                     )
-
-
-                np.save(path0+"delayest1_t{}.npy".format(ut), delay_est)
-                np.save(path0+"delay_fftarr1_t{}.npy".format(ut), fft_arrk)
-                np.save(path0+"delay_fft_freq1_t{}.npy".format(ut), fft_freqk)
-                np.save(path0+"tecest1_t{}.npy".format(ut), tec_est)
-                np.save(path0+"tec_fftarr1_t{}.npy".format(ut), fft_arrt)
-                np.save(path0+"tec_fft_freq1_t{}.npy".format(ut), fft_freqt)
-
 
                 #select again!
                 #Attempting to tweak the peak selection for the previously non-dominant peak
@@ -354,7 +316,7 @@ class DelayAndTec(ParameterizedGain):
                             else:
                                 params[t, uf, q, 0, 1] = -delay_est[q, 0]
 
-                            
+
                             if params_assigned[t, uf, q, 0, 3] == 1: #delay was selected initially
                                 params[t, uf, q, 0, 2] = -tec_est[q, 1]
                             else:
@@ -372,13 +334,11 @@ class DelayAndTec(ParameterizedGain):
                                 params[t, uf, p, 0, 0] = tec_est[p, 0]
                             else:
                                 params[t, uf, p, 0, 1] = delay_est[p, 0]
-                            
+
                             if params_assigned[t, uf, p, 0, 3] == 1:
                                 params[t, uf, p, 0, 2] = tec_est[p, 1]
                             else:
                                 params[t, uf, p, 0, 3] = delay_est[p, 1]
-                            
-
 
         apply_param_flags_to_params(param_flags, params, 0)
         apply_gain_flags_to_gains(gain_flags, gains)
@@ -390,10 +350,6 @@ class DelayAndTec(ParameterizedGain):
             term_kwargs[f"{self.name}_param_freq_map"],
         )
 
-        #Save as no-solve gains
-        np.save(path0+"gains1.npy", gains)
-
-
         return gains, gain_flags, params, param_flags
 
 
@@ -403,7 +359,7 @@ class DelayAndTec(ParameterizedGain):
         type is either k (delay) or t (tec).
 
         """
-        
+
         n_ant, n_param = est_arr.shape
 
         dfreq = np.abs(freq[-2] - freq[-1])
@@ -450,7 +406,7 @@ class DelayAndTec(ParameterizedGain):
             )
             fft_arr[:, :, i] = vis_finufft
             est_arr[:, i] = fft_freq[np.argmax(np.abs(vis_finufft), axis=1)]
-        
+
         est_arr[~valid_ant] = 0
 
         return est_arr, fft_arr, fft_freq
