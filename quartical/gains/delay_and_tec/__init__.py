@@ -238,7 +238,7 @@ class DelayAndTec(ParameterizedGain):
 
                 
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt22_tandd/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt23_tandd/"
@@ -246,6 +246,17 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt26_tandd/"
                 # path00 = "/home/russeeawon/testing/lofar_expts/expt3/"
                 # path00 = "/home/russeeawon/testing/lofar_expts/expt6/"
+
+                # path00 = "/home/russeeawon/testing/losito_run/expt3/"
+                # path00 = "/home/russeeawon/testing/losito_run/expt6/"
+                # path00 = "/home/russeeawon/testing/losito_run/expt2_chain/"
+                # path00 = "/home/russeeawon/testing/losito_run/expt2_chain_edited/"
+                # path00 = "/home/russeeawon/testing/losito_run/expt2_chain_fixed_dt/"
+                # path00 = "/home/russeeawon/testing/losito_run/expt4/"
+                path00 = "/home/russeeawon/testing/losito_run/expt4_nochain/"
+                # path00 = "/home/russeeawon/testing/losito_run/expt6/"
+
+
 
                 path01 = ""
 
@@ -269,7 +280,7 @@ class DelayAndTec(ParameterizedGain):
 
         #Save the midway gains
         np.save(path0+"gains0.npy", gains)
-        np.save(path0+"data0.npy", data)
+        # np.save(path0+"data0.npy", data)
         np.save(path0+"params0.npy", params)
 
         

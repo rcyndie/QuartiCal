@@ -144,15 +144,20 @@ class Delay(ParameterizedGain):
                 delay_est_00[~valid_ant] = 0
 
 
-                # path00 = "/home/russeeawon/testing/PKS1934/expt5/mad/"
-                path00 = "/home/russeeawon/testing/PKS1934/expt5/nomad/"
-
+                path00 = "/home/russeeawon/testing/losito_run/expt2_chain_fixed_d/"
                 path01 = ""
 
                 path0 = path00+path01
-                np.save(path0+"delayest.npy", delay_est_00)
-                np.save(path0+"delay_fftarr.npy", fft_data)
-                np.save(path0+"delay_fft_freq.npy", fft_freq)
+                # np.save(path0+"delayest.npy", delay_est_00)
+                # np.save(path0+"delay_fftarr.npy", fft_data)
+                # np.save(path0+"delay_fft_freq.npy", fft_freq)
+
+
+
+                np.save(path0+"delayest0_t{}.npy".format(ut), params[0, 0, :, 0, 1])
+                np.save(path0+"delay_fftarr0_t{}.npy".format(ut), fft_data)
+                np.save(path0+"delay_fft_freq0_t{}.npy".format(ut), fft_freq)
+
 
 
                 if n_corr > 1:

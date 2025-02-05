@@ -172,7 +172,7 @@ class DelayAndOffset(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt17a_n/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt18a/"
                 # path00 = "/home/russeeawon/testing/thesis_figures/expt18a_n/"
-                path00 = "/home/russeeawon/testing/thesis_figures/expt19a/"
+                # path00 = "/home/russeeawon/testing/thesis_figures/expt19a/"
 
                 # path00 = "/home/russeeawon/testing/lofar_expts/expt1/"
 
