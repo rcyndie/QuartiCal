@@ -1,6 +1,8 @@
 import numpy as np
 import finufft
 from collections import namedtuple
+import matplotlib.pyplot as plt
+from scipy.integrate import cumulative_trapezoid
 from quartical.gains.conversion import no_op, trig_to_angle
 from quartical.gains.parameterized_gain import ParameterizedGain
 from quartical.gains.delay_and_tec.kernel import (
@@ -125,7 +127,9 @@ class DelayAndTec(ParameterizedGain):
 
 
         #Before any parameter assignment, create an array to store the dominant peak selection.
-        params_assigned = np.zeros(params.shape, dtype=np.int32)
+        ctzt = np.empty((utint.size, ufint.size, n_ant))
+        ctzk = np.empty((utint.size, ufint.size, n_ant))
+        grads = np.empty((utint.size, ufint.size,))
 
         for ut in utint:
             sel = np.where((t_map == ut) & (a1 != a2))
@@ -157,83 +161,105 @@ class DelayAndTec(ParameterizedGain):
                 fsel = np.where(f_map == uf)[0]
                 sel_n_chan = fsel.size
                 ##in inverse frequency domain
-                invfreq = 1./chan_freq
+                fsel_chan = chan_freq[fsel]
+                invfreq = 1./fsel_chan
 
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
+                grads[ut, uf], _ = np.polyfit(fsel_chan, invfreq, deg=1)
+
                 #Initialise array to contain delay and tec estimates
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
                 delay_est, fft_arrk, fft_freqk = self.initial_estimates(
-                    fsel_data, delay_est, chan_freq, valid_ant, type="k"
-                    )
+                    fsel_data, delay_est, fsel_chan, valid_ant, type="k"
+                )
 
                 tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
                 tec_est, fft_arrt, fft_freqt = self.initial_estimates(
                     fsel_data, tec_est, invfreq, valid_ant, type="t"
-                    )
+                )
 
-                #Array of zeros and assign to 1 when selecting peak.
-                #Selecting the dominant peak and letting the other parameter as zero.
-                for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
-                    if p == ref_ant:
-                        if n_corr == 1:
-                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
-                                #delay is dominant >> only assign delay
-                                params[t, uf, q, 0, 1] = -delay_est[q]
-                                params_assigned[t, uf, q, 0, 1] = 1
-                            else:
-                                #tec is dominant >> only assign tec
-                                params[t, uf, q, 0, 0] = -tec_est[q]
-                                params_assigned[t, uf, q, 0, 0] = 1
-                        elif n_corr > 1:
-                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
-                                #only assign delay
-                                params[t, uf, q, 0, 1] = -delay_est[q, 0]
-                                params_assigned[t, uf, q, 0, 1] = 1
-                            else:
-                                #only assign tec
-                                params[t, uf, q, 0, 0] = -tec_est[q, 0]
-                                params_assigned[t, uf, q, 0, 0] = 1
+                pst = (fft_arrt * fft_arrt.conj()).real
+                for ai in range(n_ant):
+                    ctz = cumulative_trapezoid(pst[ai, :, 0], fft_freqt)
+                    ctzt[ut, uf, ai] = fft_freqt[np.argwhere(ctz >= ctz.max()/2)[0]]
 
-                            if np.max(np.abs(fft_arrk[q, :, 1])**2) > np.max(np.abs(fft_arrt[q, :, 1])**2):
-                                #only assign delay
-                                params[t, uf, q, 0, 3] = -delay_est[q, 1]
-                                params_assigned[t, uf, q, 0, 3] = 1
-                            else:
-                                #only assign tec
-                                params[t, uf, q, 0, 2] = -tec_est[q, 1]
-                                params_assigned[t, uf, q, 0, 2] = 1
+                psk = (fft_arrk * fft_arrk.conj()).real
+                for ai in range(n_ant):
+                    ctz = cumulative_trapezoid(psk[ai, :, 0], fft_freqk)
+                    ctzk[ut, uf, ai] = fft_freqk[np.argwhere(ctz >= ctz.max()/2)[0]]
 
-                    else:
-                        if n_corr == 1:
-                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
-                                #delay is dominant >> only assign delay
-                                params[t, uf, p, 0, 1] = delay_est[p]
-                                params_assigned[t, uf, p, 0, 1] = 1
-                            else:
-                                #tec is dominant >> only assign tec
-                                params[t, uf, p, 0, 0] = tec_est[p]
-                                params_assigned[t, uf, p, 0, 0] = 1
-                        elif n_corr > 1:
-                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
-                                #only assign delay
-                                params[t, uf, p, 0, 1] = delay_est[p, 0]
-                                params_assigned[t, uf, p, 0, 1] = 1
-                            else:
-                                #only assign tec
-                                params[t, uf, p, 0, 0] = tec_est[p, 0]
-                                params_assigned[t, uf, p, 0, 0] = 1
+                # if ut == 0:
 
-                            if np.max(np.abs(fft_arrk[p, :, 1])**2) > np.max(np.abs(fft_arrt[p, :, 1])**2):
-                                #only assign delay
-                                params[t, uf, p, 0, 3] = delay_est[p, 1]
-                                params_assigned[t, uf, p, 0, 3] = 1
-                            else:
-                                #only assign tec
-                                params[t, uf, p, 0, 2] = tec_est[p, 1]
-                                params_assigned[t, uf, p, 0, 2] = 1
+                #     true_tec = np.array(
+                #         [
+                #             0.00000000e+00,
+                #             -2.48157553e+10,
+                #             9.91282870e+09,
+                #             -5.69428194e+10,
+                #             -4.89735646e+10,
+                #             3.66740214e+09,
+                #             -6.64857439e+10
+                #         ]
+                #     )
+                #     true_delay = np.array(
+                #         [
+                #             0.00000000e+00,
+                #             -7.45331380e-09,
+                #             6.68659373e-09,
+                #             3.22179062e-09,
+                #             -2.40328479e-09,
+                #             -1.91728836e-08,
+                #             -1.91232591e-08
+                #         ]
+                #     )
 
+                #     plotsel = slice(fft_freqt.size//2-1000, fft_freqt.size//2+1000)
+
+                #     TEC = (ctzk[ut, 0] - ctzk[ut, 1])/(grads[ut, 0] - grads[ut, 1])
+                #     K = ctzk[ut, 0] - grads[ut, 0] * TEC
+
+                #     plt.figure()
+                #     for foo in range(fft_arrk.shape[0]):
+                #         plt.plot(fft_freqt[plotsel], pst[foo, plotsel, 0])
+                #         plt.axvline(-true_tec[foo])
+                #         plt.axvline(-(true_delay[foo] / grads[ut, uf] + true_tec[foo]), c="r")
+                #         plt.axvline(ctzt[ut, uf, foo], c="k")
+                #         plt.axvline(TEC[foo], c="g")
+                #         plt.title("PS - TEC")
+                #         if uf == 1:
+                #             plt.show()
+                #         else:
+                #             plt.clf()
+
+                #     plt.figure()
+                #     for foo in range(fft_arrk.shape[0]):
+                #         plt.plot(fft_freqk[plotsel], psk[foo, plotsel, 0])
+                #         plt.axvline(-true_delay[foo])
+                #         plt.axvline(-(true_tec[foo] * grads[ut, uf] + true_delay[foo]), c="r")
+                #         plt.axvline(ctzk[ut, uf, foo], c="k")
+                #         plt.axvline(K[foo], c="g")
+                #         plt.title("PS - Clock")
+                #         if uf == 1:
+                #             plt.show()
+                #         else:
+                #             plt.clf()
+
+        tec_est = (ctzk[:, 0] - ctzk[:, 1])/(grads[:, 0] - grads[:, 1])[:, None]
+        delay_est = ctzk[:, 0] - grads[:, None, 0] * tec_est
+
+        tec_est[:, ref_ant] = 0
+        delay_est[:, ref_ant] = 0
+
+        tec_est[:, ref_ant:] = -tec_est[:, ref_ant:]
+        delay_est[:, ref_ant:] = -delay_est[:, ref_ant:]
+
+        # TODO: Frequency solution interval should be on top of the halving -
+        # the current approach is a hack. The correlation axis also needs to
+        # be handled correctly.
+        params[:, :, :, 0, 0] = tec_est[:, None, :]
+        params[:, :, :, 0, 1] = delay_est[:, None, :]
 
         delay_and_tec_params_to_gains(
             params,
@@ -251,94 +277,19 @@ class DelayAndTec(ParameterizedGain):
             dir_maps, row_map, row_weights, n_corr
         )
 
-        #A second round of estimation
-        for ut in utint:
-            sel = np.where((t_map == ut) & (a1 != a2))
-            ant_map_pq = np.where(a1[sel] == ref_ant, a2[sel], 0)
-            ant_map_qp = np.where(a2[sel] == ref_ant, a1[sel], 0)
-            ant_map = ant_map_pq + ant_map_qp
+        plt.figure()
+        _sel = np.where((t_map == 0) & (a1 != a2))
+        for foo in range(len(_sel[0])):
+            plt.plot(np.angle(data[_sel][foo,:,0]))
+        plt.title("Uncorrected")
 
-            ref_data = np.zeros((n_ant, n_chan, n_corr), dtype=np.complex128)
-            counts = np.zeros((n_ant, n_chan), dtype=int)
-            np.add.at(
-                ref_data,
-                ant_map,
-                corrected_data[sel]
-            )
-            np.add.at(
-                counts,
-                ant_map,
-                flags[sel] == 0
-            )
-            np.divide(
-                ref_data,
-                counts[:, :, None],
-                where=counts[:, :, None] != 0,
-                out=ref_data
-            )
-
-            for uf in ufint:
-
-                fsel = np.where(f_map == uf)[0]
-                sel_n_chan = fsel.size
-                ##in inverse frequency domain
-                invfreq = 1./chan_freq
-
-                fsel_data = ref_data[:, fsel]
-                valid_ant = fsel_data.any(axis=(1, 2))
-
-                #Initialise array to contain delay and tec estimates
-
-                delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
-                delay_est, fft_arrk, fft_freqk = self.initial_estimates(
-                    fsel_data, delay_est, chan_freq, valid_ant, type="k"
-                    )
-
-                tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
-                tec_est, fft_arrt, fft_freqt = self.initial_estimates(
-                    fsel_data, tec_est, invfreq, valid_ant, type="t"
-                    )
-
-                #select again!
-                #Attempting to tweak the peak selection for the previously non-dominant peak
-                for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
-                    if p == ref_ant:
-                        if n_corr == 1:
-                            if params_assigned[t, uf, q, 0, 1] == 1: #delay was selected initially
-                                #now select tec
-                                params[t, uf, q, 0, 0] = -tec_est[q]
-                            else:
-                                params[t, uf, q, 0, 1] = -delay_est[q]
-
-                        elif n_corr > 1:
-                            if params_assigned[t, uf, q, 0, 1] == 1: #delay was selected initially
-                                params[t, uf, q, 0, 0] = -tec_est[q, 0]
-                            else:
-                                params[t, uf, q, 0, 1] = -delay_est[q, 0]
-
-
-                            if params_assigned[t, uf, q, 0, 3] == 1: #delay was selected initially
-                                params[t, uf, q, 0, 2] = -tec_est[q, 1]
-                            else:
-                                params[t, uf, q, 0, 3] = -delay_est[q, 1]
-
-                    else:
-                        if n_corr == 1:
-                            if params_assigned[t, uf, p, 0, 1] == 1: #delay was selected initially
-                                params[t, uf, p, 0, 0] = tec_est[p]
-                            else:
-                                params[t, uf, p, 0, 1] = delay_est[p]
-
-                        elif n_corr > 1:
-                            if params_assigned[t, uf, p, 0, 1] == 1:
-                                params[t, uf, p, 0, 0] = tec_est[p, 0]
-                            else:
-                                params[t, uf, p, 0, 1] = delay_est[p, 0]
-
-                            if params_assigned[t, uf, p, 0, 3] == 1:
-                                params[t, uf, p, 0, 2] = tec_est[p, 1]
-                            else:
-                                params[t, uf, p, 0, 3] = delay_est[p, 1]
+        print(params[0,0,:,0,:])
+        plt.figure()
+        _sel = np.where((t_map == 0) & (a1 != a2))
+        for foo in range(len(_sel[0])):
+            plt.plot(np.angle(corrected_data[_sel][foo,:,0]))
+        plt.title("Partial")
+        plt.show()
 
         apply_param_flags_to_params(param_flags, params, 0)
         apply_gain_flags_to_gains(gain_flags, gains)
@@ -369,17 +320,16 @@ class DelayAndTec(ParameterizedGain):
         nbins = int(max_delta/ nyq_rate)
 
         if type == "k":
-            nbins = 4*nbins
+            nbins = max(2 * freq.size, 4096) #4*nbins
             fft_freq = np.fft.fftfreq(nbins, dfreq)
             fft_freq = np.fft.fftshift(fft_freq)
-
             #when not using finufft
             # fft_arr = np.abs(
             #     np.fft.fft(fsel_data, n=nbins, axis=1)
             # )
             # fft_arr = np.fft.fftshift(fft_arr, axes=1)
         elif type == "t":
-            nbins = 6*nbins
+            nbins = max(2 * freq.size, 4096)
             ##factor for rescaling frequency
             ffactor = 1 #1e8
             freq *= ffactor
