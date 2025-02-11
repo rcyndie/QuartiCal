@@ -125,11 +125,9 @@ class DelayAndTec(ParameterizedGain):
         n_param = params.shape[-1]
         assert n_param == n_paramk + n_paramt
 
-
-        #Before any parameter assignment, create an array to store the dominant peak selection.
-        ctzt = np.empty((utint.size, ufint.size, n_ant))
-        ctzk = np.empty((utint.size, ufint.size, n_ant))
-        grads = np.empty((utint.size, ufint.size,))
+        ctz_tec = np.empty((utint.size, ufint.size, n_ant))
+        ctz_delay = np.empty((utint.size, ufint.size, n_ant))
+        gradients = np.empty((utint.size, ufint.size,))
 
         for ut in utint:
             sel = np.where((t_map == ut) & (a1 != a2))
@@ -167,7 +165,7 @@ class DelayAndTec(ParameterizedGain):
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
-                grads[ut, uf], _ = np.polyfit(fsel_chan, invfreq, deg=1)
+                gradients[ut, uf], _ = np.polyfit(fsel_chan, invfreq, deg=1)
 
                 #Initialise array to contain delay and tec estimates
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
@@ -183,12 +181,12 @@ class DelayAndTec(ParameterizedGain):
                 pst = (fft_arrt * fft_arrt.conj()).real
                 for ai in range(n_ant):
                     ctz = cumulative_trapezoid(pst[ai, :, 0], fft_freqt)
-                    ctzt[ut, uf, ai] = fft_freqt[np.argwhere(ctz >= ctz.max()/2)[0]]
+                    ctz_tec[ut, uf, ai] = fft_freqt[np.argwhere(ctz >= ctz.max()/2)[0]]
 
                 psk = (fft_arrk * fft_arrk.conj()).real
                 for ai in range(n_ant):
                     ctz = cumulative_trapezoid(psk[ai, :, 0], fft_freqk)
-                    ctzk[ut, uf, ai] = fft_freqk[np.argwhere(ctz >= ctz.max()/2)[0]]
+                    ctz_delay[ut, uf, ai] = fft_freqk[np.argwhere(ctz >= ctz.max()/2)[0]]
 
                 # if ut == 0:
 
@@ -217,15 +215,15 @@ class DelayAndTec(ParameterizedGain):
 
                 #     plotsel = slice(fft_freqt.size//2-1000, fft_freqt.size//2+1000)
 
-                #     TEC = (ctzk[ut, 0] - ctzk[ut, 1])/(grads[ut, 0] - grads[ut, 1])
-                #     K = ctzk[ut, 0] - grads[ut, 0] * TEC
+                #     TEC = (ctz_delay[ut, 0] - ctz_delay[ut, 1])/(gradients[ut, 0] - gradients[ut, 1])
+                #     K = ctz_delay[ut, 0] - gradients[ut, 0] * TEC
 
                 #     plt.figure()
                 #     for foo in range(fft_arrk.shape[0]):
                 #         plt.plot(fft_freqt[plotsel], pst[foo, plotsel, 0])
                 #         plt.axvline(-true_tec[foo])
-                #         plt.axvline(-(true_delay[foo] / grads[ut, uf] + true_tec[foo]), c="r")
-                #         plt.axvline(ctzt[ut, uf, foo], c="k")
+                #         plt.axvline(-(true_delay[foo] / gradients[ut, uf] + true_tec[foo]), c="r")
+                #         plt.axvline(ctz_tec[ut, uf, foo], c="k")
                 #         plt.axvline(TEC[foo], c="g")
                 #         plt.title("PS - TEC")
                 #         if uf == 1:
@@ -237,8 +235,8 @@ class DelayAndTec(ParameterizedGain):
                 #     for foo in range(fft_arrk.shape[0]):
                 #         plt.plot(fft_freqk[plotsel], psk[foo, plotsel, 0])
                 #         plt.axvline(-true_delay[foo])
-                #         plt.axvline(-(true_tec[foo] * grads[ut, uf] + true_delay[foo]), c="r")
-                #         plt.axvline(ctzk[ut, uf, foo], c="k")
+                #         plt.axvline(-(true_tec[foo] * gradients[ut, uf] + true_delay[foo]), c="r")
+                #         plt.axvline(ctz_delay[ut, uf, foo], c="k")
                 #         plt.axvline(K[foo], c="g")
                 #         plt.title("PS - Clock")
                 #         if uf == 1:
@@ -246,8 +244,8 @@ class DelayAndTec(ParameterizedGain):
                 #         else:
                 #             plt.clf()
 
-        tec_est = (ctzk[:, 0] - ctzk[:, 1])/(grads[:, 0] - grads[:, 1])[:, None]
-        delay_est = ctzk[:, 0] - grads[:, None, 0] * tec_est
+        tec_est = (ctz_delay[:, 0] - ctz_delay[:, 1])/(gradients[:, 0] - gradients[:, 1])[:, None]
+        delay_est = ctz_delay[:, 0] - gradients[:, None, 0] * tec_est
 
         tec_est[:, ref_ant] = 0
         delay_est[:, ref_ant] = 0
