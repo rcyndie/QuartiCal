@@ -162,7 +162,6 @@ class DelayAndTec(ParameterizedGain):
 
                 fsel = np.where(f_map == uf)[0]
                 fsel_nchan = fsel.size
-                ##in inverse frequency domain
                 fsel_chan = chan_freq[fsel]
 
                 fsel_data = ref_data[:, fsel]
@@ -192,20 +191,23 @@ class DelayAndTec(ParameterizedGain):
                     for ai in range(n_ant):
                         ctz = cumulative_trapezoid(psk[ai], fft_freqk, axis=0)
                         for p in range(n_paramk):
-                            median_i = np.argwhere(ctz[:, p] >= ctz[:, p].max()/2)[0]
+                            half_max = 0.5 * ctz[:, p].max()
+                            median_i = np.argwhere(ctz[:, p] >= half_max)[0]
                             ctz_delay[ut, uf, i, ai, p] = fft_freqk[median_i]
 
+                # Zero the reference antenna/antennas without data.
+                ctz_delay[ut, uf, :, ~valid_ant] = 0
+
+        gradients = gradients[..., None, None]  # Add antenna and param axes.
         tec_numerator = np.diff(ctz_delay, axis=2)
-        tec_denominator = np.diff(gradients, axis=2)[..., None, None]
+        tec_denominator = np.diff(gradients, axis=2)
         tec_est = (tec_numerator / tec_denominator)
-        delay_est = ctz_delay[:, :, :-1] - gradients[..., :-1, None, None] * tec_est
+        delay_est = ctz_delay[:, :, :-1] - gradients[:, :, :-1] * tec_est
 
         tec_est = tec_est.mean(axis=2)
         delay_est = delay_est.mean(axis=2)
 
-        tec_est[:, :, ~valid_ant] = 0
-        delay_est[:, :, ~valid_ant] = 0
-
+        # Flip the estimates on antennas > reference as they correspond to G^H.
         tec_est[:, :, ref_ant:] = -tec_est[:, :, ref_ant:]
         delay_est[:, :, ref_ant:] = -delay_est[:, :, ref_ant:]
 
@@ -277,7 +279,7 @@ class DelayAndTec(ParameterizedGain):
 
             vis_finufft = finufft.nufft1d3(
                 2 * np.pi * freq,
-                datak,
+                datak.copy(),
                 fft_freq,
                 eps=1e-6,
                 isign=-1
