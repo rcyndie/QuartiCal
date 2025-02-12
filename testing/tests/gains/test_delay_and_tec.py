@@ -67,7 +67,7 @@ def true_gain_list(predicted_xds_list):
             high=max_tec,
             chunks=tec_chunking
         )
-        tec *= 0.01  # Reduce effect to level at which 2 subints work.
+        tec *= 0.4  # Reduce effect to level at which 2 subints work.
         tec[:, :, 0, :, :] = 0  # Zero the reference antenna for safety.
 
         max_delay = 1/(2 * chan_width)
@@ -77,7 +77,7 @@ def true_gain_list(predicted_xds_list):
             low=-max_delay,
             high=max_delay
         )
-        delays *= 0.01  # Reduce effect to level at which 2 subints work.
+        delays *= 0.4  # Reduce effect to level at which 2 subints work.
         delays[:, :, 0, :, :] = 0  # Zero the reference antenna for safety.
 
         amp = da.ones((n_time, n_chan, n_ant, n_dir, n_corr),

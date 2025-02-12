@@ -130,8 +130,7 @@ class DelayAndTec(ParameterizedGain):
         n_param = params.shape[-1]
         assert n_param == n_paramk + n_paramt
 
-        ctz_tec = np.empty((n_tint, n_fint, n_subint, n_ant))
-        ctz_delay = np.empty((n_tint, n_fint, n_subint, n_ant))
+        ctz_delay = np.empty((n_tint, n_fint, n_subint, n_ant, n_paramk))
         gradients = np.empty((n_tint, n_fint, n_subint))
 
         for ut in utint:
@@ -165,7 +164,6 @@ class DelayAndTec(ParameterizedGain):
                 fsel_nchan = fsel.size
                 ##in inverse frequency domain
                 fsel_chan = chan_freq[fsel]
-                invfreq = 1./fsel_chan
 
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
@@ -190,96 +188,29 @@ class DelayAndTec(ParameterizedGain):
                         subint_data, delay_est, subint_freq, valid_ant, type="k"
                     )
 
-                # tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
-                # tec_est, fft_arrt, fft_freqt = self.initial_estimates(
-                #     fsel_data, tec_est, invfreq, valid_ant, type="t"
-                # )
-
-                # pst = (fft_arrt * fft_arrt.conj()).real
-                # for ai in range(n_ant):
-                #     ctz = cumulative_trapezoid(pst[ai, :, 0], fft_freqt)
-                #     median_i = np.argwhere(ctz >= ctz.max()/2)[0]
-                #     ctz_tec[ut, uf, ai] = fft_freqt[median_i]
-
                     psk = (fft_arrk * fft_arrk.conj()).real
                     for ai in range(n_ant):
-                        ctz = cumulative_trapezoid(psk[ai, :, 0], fft_freqk)
-                        median_i = np.argwhere(ctz >= ctz.max()/2)[0]
-                        ctz_delay[ut, uf, i, ai] = fft_freqk[median_i]
-
-                # if ut == 0:
-
-                #     true_tec = np.array(
-                #         [
-                #             0.00000000e+00,
-                #             -2.48157553e+10,
-                #             9.91282870e+09,
-                #             -5.69428194e+10,
-                #             -4.89735646e+10,
-                #             3.66740214e+09,
-                #             -6.64857439e+10
-                #         ]
-                #     )
-                #     true_delay = np.array(
-                #         [
-                #             0.00000000e+00,
-                #             -7.45331380e-09,
-                #             6.68659373e-09,
-                #             3.22179062e-09,
-                #             -2.40328479e-09,
-                #             -1.91728836e-08,
-                #             -1.91232591e-08
-                #         ]
-                #     )
-
-                #     plotsel = slice(fft_freqt.size//2-1000, fft_freqt.size//2+1000)
-
-                #     TEC = (ctz_delay[ut, 0] - ctz_delay[ut, 1])/(gradients[ut, 0] - gradients[ut, 1])
-                #     K = ctz_delay[ut, 0] - gradients[ut, 0] * TEC
-
-                #     plt.figure()
-                #     for foo in range(fft_arrk.shape[0]):
-                #         plt.plot(fft_freqt[plotsel], pst[foo, plotsel, 0])
-                #         plt.axvline(-true_tec[foo])
-                #         plt.axvline(-(true_delay[foo] / gradients[ut, uf] + true_tec[foo]), c="r")
-                #         plt.axvline(ctz_tec[ut, uf, foo], c="k")
-                #         plt.axvline(TEC[foo], c="g")
-                #         plt.title("PS - TEC")
-                #         if uf == 1:
-                #             plt.show()
-                #         else:
-                #             plt.clf()
-
-                #     plt.figure()
-                #     for foo in range(fft_arrk.shape[0]):
-                #         plt.plot(fft_freqk[plotsel], psk[foo, plotsel, 0])
-                #         plt.axvline(-true_delay[foo])
-                #         plt.axvline(-(true_tec[foo] * gradients[ut, uf] + true_delay[foo]), c="r")
-                #         plt.axvline(ctz_delay[ut, uf, foo], c="k")
-                #         plt.axvline(K[foo], c="g")
-                #         plt.title("PS - Clock")
-                #         if uf == 1:
-                #             plt.show()
-                #         else:
-                #             plt.clf()
+                        ctz = cumulative_trapezoid(psk[ai], fft_freqk, axis=0)
+                        for p in range(n_paramk):
+                            median_i = np.argwhere(ctz[:, p] >= ctz[:, p].max()/2)[0]
+                            ctz_delay[ut, uf, i, ai, p] = fft_freqk[median_i]
 
         tec_numerator = np.diff(ctz_delay, axis=2)
-        tec_denominator = np.diff(gradients, axis=2)[..., None]
+        tec_denominator = np.diff(gradients, axis=2)[..., None, None]
         tec_est = (tec_numerator / tec_denominator)
-        delay_est = ctz_delay[:, :, :-1] - gradients[..., :-1, None] * tec_est
+        delay_est = ctz_delay[:, :, :-1] - gradients[..., :-1, None, None] * tec_est
 
         tec_est = tec_est.mean(axis=2)
         delay_est = delay_est.mean(axis=2)
 
-        tec_est[:, :, ref_ant] = 0
-        delay_est[:, :, ref_ant] = 0
+        tec_est[:, :, ~valid_ant] = 0
+        delay_est[:, :, ~valid_ant] = 0
 
         tec_est[:, :, ref_ant:] = -tec_est[:, :, ref_ant:]
         delay_est[:, :, ref_ant:] = -delay_est[:, :, ref_ant:]
 
-        # TODO: Handle the correlation axis throughout the estimates.
-        params[:, :, :, 0, 0] = tec_est
-        params[:, :, :, 0, 1] = delay_est
+        params[:, :, :, 0, 0::2] = tec_est
+        params[:, :, :, 0, 1::2] = delay_est
 
         delay_and_tec_params_to_gains(
             params,
@@ -287,28 +218,6 @@ class DelayAndTec(ParameterizedGain):
             ms_kwargs["CHAN_FREQ"],
             term_kwargs[f"{self.name}_param_freq_map"],
         )
-
-        # gain_tuple spans from the different gain types, here we are only \
-        # considering one gain type (delay_and_tec).
-        gain_tuple = (gains,)
-        #tuples required for time and frequency maps
-        corrected_data = compute_corrected_residual(
-            data, gain_tuple, a1, a2, (t_map,), (term_kwargs[f"{term_spec.name}_freq_map"],), \
-            dir_maps, row_map, row_weights, n_corr
-        )
-
-        plt.figure()
-        _sel = np.where((t_map == 0) & (a1 != a2))
-        for foo in range(len(_sel[0])):
-            plt.plot(np.angle(data[_sel][foo,:,0]))
-        plt.title("Uncorrected")
-
-        plt.figure()
-        _sel = np.where((t_map == 0) & (a1 != a2))
-        for foo in range(len(_sel[0])):
-            plt.plot(np.angle(corrected_data[_sel][foo,:,0]))
-        plt.title("Partial")
-        plt.show()
 
         apply_param_flags_to_params(param_flags, params, 0)
         apply_gain_flags_to_gains(gain_flags, gains)
