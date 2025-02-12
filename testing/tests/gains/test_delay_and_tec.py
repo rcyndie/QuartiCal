@@ -22,6 +22,8 @@ def opts(base_opts, select_corr):
     _opts.solver.threads = 2
     _opts.G.type = "delay_and_tec"
     _opts.G.freq_interval = 0
+    _opts.G.initial_estimate = True
+    # _opts.dask.scheduler="single-threaded"
 
     return _opts
 
@@ -53,7 +55,7 @@ def true_gain_list(predicted_xds_list):
         cf_max = chan_freq.max()
         band_centre = (cf_min + cf_max) / 2
 
-        max_tec = 1/(1/chan_freq[-1] - 1/chan_freq[-2])
+        max_tec = 1/(2*(1/chan_freq[-1] - 1/chan_freq[-2]))
 
         chunking = (utime_chunks, chan_chunks, n_ant, n_dir, n_corr)
         tec_chunking = (utime_chunks, 1, n_ant, n_dir, n_corr)
@@ -61,18 +63,21 @@ def true_gain_list(predicted_xds_list):
         da.random.seed(0)
         tec = da.random.uniform(
             size=(n_time, 1, n_ant, n_dir, n_corr),
-            low=-0.05*max_tec,
-            high=0.05*max_tec,
+            low=-max_tec,
+            high=max_tec,
             chunks=tec_chunking
         )
+        tec *= 0.01  # Reduce effect to level at which 2 subints work.
         tec[:, :, 0, :, :] = 0  # Zero the reference antenna for safety.
+
+        max_delay = 1/(2 * chan_width)
 
         delays = da.random.uniform(
             size=(n_time, 1, n_ant, n_dir, n_corr),
-            low=-1/(2*chan_width),
-            high=1/(2*chan_width)
+            low=-max_delay,
+            high=max_delay
         )
-        delays *= 0.2  # Remove once we have initial enstimates.
+        delays *= 0.01  # Reduce effect to level at which 2 subints work.
         delays[:, :, 0, :, :] = 0  # Zero the reference antenna for safety.
 
         amp = da.ones((n_time, n_chan, n_ant, n_dir, n_corr),

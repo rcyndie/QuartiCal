@@ -111,7 +111,12 @@ class DelayAndTec(ParameterizedGain):
 
         utint = np.unique(t_map)
         ufint = np.unique(f_map)
-
+        n_tint = utint.size
+        n_fint = ufint.size
+        # NOTE: This determines the number of subintervals which are used to 
+        # estimate the delay and tec values. More subintervals will typically
+        # yield better estimates at the cost of SNR.
+        n_subint = 2
 
         if n_corr == 1:
             n_paramt = 1 #number of parameters in TEC
@@ -125,9 +130,9 @@ class DelayAndTec(ParameterizedGain):
         n_param = params.shape[-1]
         assert n_param == n_paramk + n_paramt
 
-        ctz_tec = np.empty((utint.size, ufint.size, n_ant))
-        ctz_delay = np.empty((utint.size, ufint.size, n_ant))
-        gradients = np.empty((utint.size, ufint.size,))
+        ctz_tec = np.empty((n_tint, n_fint, n_subint, n_ant))
+        ctz_delay = np.empty((n_tint, n_fint, n_subint, n_ant))
+        gradients = np.empty((n_tint, n_fint, n_subint))
 
         for ut in utint:
             sel = np.where((t_map == ut) & (a1 != a2))
@@ -157,7 +162,7 @@ class DelayAndTec(ParameterizedGain):
             for uf in ufint:
 
                 fsel = np.where(f_map == uf)[0]
-                sel_n_chan = fsel.size
+                fsel_nchan = fsel.size
                 ##in inverse frequency domain
                 fsel_chan = chan_freq[fsel]
                 invfreq = 1./fsel_chan
@@ -165,28 +170,42 @@ class DelayAndTec(ParameterizedGain):
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
-                gradients[ut, uf], _ = np.polyfit(fsel_chan, invfreq, deg=1)
+                subint_stride = int(np.ceil(fsel_nchan / n_subint))
 
-                #Initialise array to contain delay and tec estimates
-                delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
-                delay_est, fft_arrk, fft_freqk = self.initial_estimates(
-                    fsel_data, delay_est, fsel_chan, valid_ant, type="k"
-                )
+                for i, si in enumerate(range(0, fsel_nchan, subint_stride)):
 
-                tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
-                tec_est, fft_arrt, fft_freqt = self.initial_estimates(
-                    fsel_data, tec_est, invfreq, valid_ant, type="t"
-                )
+                    si_sel = slice(si, si + subint_stride)
 
-                pst = (fft_arrt * fft_arrt.conj()).real
-                for ai in range(n_ant):
-                    ctz = cumulative_trapezoid(pst[ai, :, 0], fft_freqt)
-                    ctz_tec[ut, uf, ai] = fft_freqt[np.argwhere(ctz >= ctz.max()/2)[0]]
+                    subint_data = fsel_data[:, si_sel]
+                    subint_freq = fsel_chan[si_sel]
+                    subint_ifreq = 1/subint_freq
 
-                psk = (fft_arrk * fft_arrk.conj()).real
-                for ai in range(n_ant):
-                    ctz = cumulative_trapezoid(psk[ai, :, 0], fft_freqk)
-                    ctz_delay[ut, uf, ai] = fft_freqk[np.argwhere(ctz >= ctz.max()/2)[0]]
+                    gradients[ut, uf, i], _ = np.polyfit(
+                        subint_freq, subint_ifreq, deg=1
+                    )
+
+                    #Initialise array to contain delay and tec estimates
+                    delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
+                    delay_est, fft_arrk, fft_freqk = self.initial_estimates(
+                        subint_data, delay_est, subint_freq, valid_ant, type="k"
+                    )
+
+                # tec_est = np.zeros((n_ant, n_paramt), dtype=np.float64)
+                # tec_est, fft_arrt, fft_freqt = self.initial_estimates(
+                #     fsel_data, tec_est, invfreq, valid_ant, type="t"
+                # )
+
+                # pst = (fft_arrt * fft_arrt.conj()).real
+                # for ai in range(n_ant):
+                #     ctz = cumulative_trapezoid(pst[ai, :, 0], fft_freqt)
+                #     median_i = np.argwhere(ctz >= ctz.max()/2)[0]
+                #     ctz_tec[ut, uf, ai] = fft_freqt[median_i]
+
+                    psk = (fft_arrk * fft_arrk.conj()).real
+                    for ai in range(n_ant):
+                        ctz = cumulative_trapezoid(psk[ai, :, 0], fft_freqk)
+                        median_i = np.argwhere(ctz >= ctz.max()/2)[0]
+                        ctz_delay[ut, uf, i, ai] = fft_freqk[median_i]
 
                 # if ut == 0:
 
@@ -244,20 +263,23 @@ class DelayAndTec(ParameterizedGain):
                 #         else:
                 #             plt.clf()
 
-        tec_est = (ctz_delay[:, 0] - ctz_delay[:, 1])/(gradients[:, 0] - gradients[:, 1])[:, None]
-        delay_est = ctz_delay[:, 0] - gradients[:, None, 0] * tec_est
+        tec_numerator = np.diff(ctz_delay, axis=2)
+        tec_denominator = np.diff(gradients, axis=2)[..., None]
+        tec_est = (tec_numerator / tec_denominator)
+        delay_est = ctz_delay[:, :, :-1] - gradients[..., :-1, None] * tec_est
 
-        tec_est[:, ref_ant] = 0
-        delay_est[:, ref_ant] = 0
+        tec_est = tec_est.mean(axis=2)
+        delay_est = delay_est.mean(axis=2)
 
-        tec_est[:, ref_ant:] = -tec_est[:, ref_ant:]
-        delay_est[:, ref_ant:] = -delay_est[:, ref_ant:]
+        tec_est[:, :, ref_ant] = 0
+        delay_est[:, :, ref_ant] = 0
 
-        # TODO: Frequency solution interval should be on top of the halving -
-        # the current approach is a hack. The correlation axis also needs to
-        # be handled correctly.
-        params[:, :, :, 0, 0] = tec_est[:, None, :]
-        params[:, :, :, 0, 1] = delay_est[:, None, :]
+        tec_est[:, :, ref_ant:] = -tec_est[:, :, ref_ant:]
+        delay_est[:, :, ref_ant:] = -delay_est[:, :, ref_ant:]
+
+        # TODO: Handle the correlation axis throughout the estimates.
+        params[:, :, :, 0, 0] = tec_est
+        params[:, :, :, 0, 1] = delay_est
 
         delay_and_tec_params_to_gains(
             params,
@@ -281,7 +303,6 @@ class DelayAndTec(ParameterizedGain):
             plt.plot(np.angle(data[_sel][foo,:,0]))
         plt.title("Uncorrected")
 
-        print(params[0,0,:,0,:])
         plt.figure()
         _sel = np.where((t_map == 0) & (a1 != a2))
         for foo in range(len(_sel[0])):
@@ -318,7 +339,7 @@ class DelayAndTec(ParameterizedGain):
         nbins = int(max_delta/ nyq_rate)
 
         if type == "k":
-            nbins = max(2 * freq.size, 4096) #4*nbins
+            nbins = max(2 * freq.size, 4096)  # Need adequate samples.
             fft_freq = np.fft.fftfreq(nbins, dfreq)
             fft_freq = np.fft.fftshift(fft_freq)
             #when not using finufft
