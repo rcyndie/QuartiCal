@@ -113,7 +113,7 @@ class DelayAndTec(ParameterizedGain):
         ufint = np.unique(f_map)
         n_tint = utint.size
         n_fint = ufint.size
-        # NOTE: This determines the number of subintervals which are used to 
+        # NOTE: This determines the number of subintervals which are used to
         # estimate the delay and tec values. More subintervals will typically
         # yield better estimates at the cost of SNR.
         n_subint = 2
@@ -194,6 +194,11 @@ class DelayAndTec(ParameterizedGain):
                             half_max = 0.5 * ctz[:, p].max()
                             median_i = np.argwhere(ctz[:, p] >= half_max)[0]
                             ctz_delay[ut, uf, i, ai, p] = fft_freqk[median_i]
+
+                    # TODO: Investigate whether it is better to use the delay
+                    # estimates with a higher number of subintervals over the
+                    # median of the power spectrum.
+                    # ctz_delay[ut, uf, i] = delay_est
 
                 # Zero the reference antenna/antennas without data.
                 ctz_delay[ut, uf, :, ~valid_ant] = 0
@@ -277,6 +282,10 @@ class DelayAndTec(ParameterizedGain):
             else:
                 raise ValueError("Unsupported number of parameters for delay.")
 
+            # TODO: Why does the normal FFT disagree with the nufft? Ideally
+            # we want to use numpy as it reduces our dependencies.
+            # vis_fft = np.fft.fftshift(np.fft.fft(datak.copy(), axis=-1, n=nbins))
+
             vis_finufft = finufft.nufft1d3(
                 2 * np.pi * freq,
                 datak.copy(),
@@ -284,6 +293,14 @@ class DelayAndTec(ParameterizedGain):
                 eps=1e-6,
                 isign=-1
             )
+
+            # fft_ps = (vis_fft * vis_fft.conj()).real
+            # nufft_ps = (vis_finufft * vis_finufft.conj()).real
+
+            # plt.plot(fft_freq, fft_ps[1])
+            # plt.plot(fft_freq, nufft_ps[1], c="r")
+            # plt.show()
+
             fft_arr[:, :, i] = vis_finufft
             est_arr[:, i] = fft_freq[np.argmax(np.abs(vis_finufft), axis=1)]
 

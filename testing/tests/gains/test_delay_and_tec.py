@@ -23,7 +23,6 @@ def opts(base_opts, select_corr):
     _opts.G.type = "delay_and_tec"
     _opts.G.freq_interval = 0
     _opts.G.initial_estimate = True
-    # _opts.dask.scheduler="single-threaded"
 
     return _opts
 
