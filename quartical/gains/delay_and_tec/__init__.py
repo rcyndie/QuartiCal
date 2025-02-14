@@ -236,25 +236,14 @@ class DelayAndTec(ParameterizedGain):
                                 params_assigned[t, uf, p, 0, 2] = 1
 
 
-                
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingdelay/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/expt21_solvingtec/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt22_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt23_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt25_tandd/"
-                # path00 = "/home/russeeawon/testing/thesis_figures/extra_simulations/expt26_tandd/"
-                # path00 = "/home/russeeawon/testing/lofar_expts/expt3/"
-                # path00 = "/home/russeeawon/testing/lofar_expts/expt6/"
+            
+                # path00 = "/home/russeeawon/testing/791314_expts/expt2/"
+                # path00 = "/home/russeeawon/testing/791314_expts/expt3/"
+                # path00 = "/home/russeeawon/testing/791314_expts/expt4/"
 
-                # path00 = "/home/russeeawon/testing/losito_run/expt3/"
-                # path00 = "/home/russeeawon/testing/losito_run/expt6/"
-                # path00 = "/home/russeeawon/testing/losito_run/expt2_chain/"
-                # path00 = "/home/russeeawon/testing/losito_run/expt2_chain_edited/"
-                # path00 = "/home/russeeawon/testing/losito_run/expt2_chain_fixed_dt/"
-                # path00 = "/home/russeeawon/testing/losito_run/expt4/"
-                path00 = "/home/russeeawon/testing/losito_run/expt4_nochain/"
-                # path00 = "/home/russeeawon/testing/losito_run/expt6/"
+                # path00 = "/home/russeeawon/testing/791516_expts/expt2/"
+
+                path00 = "/home/russeeawon/testing/2002459_expts/expt2/"
 
 
 
