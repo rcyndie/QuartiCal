@@ -92,6 +92,11 @@ class DelayAndTec(ParameterizedGain):
         f_map = term_kwargs[f"{term_spec.name}_param_freq_map"]
         _, n_chan, n_ant, n_dir, n_corr = gains.shape
 
+        #Call MODEL_DATA column.
+        mdata = ms_kwargs["MODEL_DATA"]
+        #Set to only one direction.
+        data = data/mdata[:, :, 0, :]
+
 
         #what about dir_maps?
         # dir_maps = np.zeros(1, dtype=np.int32)
