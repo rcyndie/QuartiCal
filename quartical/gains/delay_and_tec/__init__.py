@@ -166,10 +166,13 @@ class DelayAndTec(ParameterizedGain):
 
                 #Set threshold on the number of nonzero entries along channels
                 threshold0 = 0.5 #20% of visibilities are zero >> flagged
-                param_flag_sel = np.where(nonzero_count<= threshold0*fsel_data.shape[1]*fsel_data.shape[2], 1, 0)
-                param_flag_sel[ref_ant] = 0
+                param_flag_sel = np.where(nonzero_count<= threshold0*fsel_data.shape[1]*fsel_data.shape[2])
                 param_flags[ut, uf, param_flag_sel, :] = 1
                 gain_flags[ut, :, param_flag_sel, :] = 1
+
+                #Do not flag the ref_ant.
+                param_flags[ut, uf, ref_ant, :] = 0
+                gain_flags[ut, :, ref_ant, :] = 0
 
 
                 #Initialise array to contain delay and tec estimates
@@ -250,9 +253,9 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/791314_expts/expt3/"
                 # path00 = "/home/russeeawon/testing/791314_expts/expt4/"
 
-                # path00 = "/home/russeeawon/testing/791516_expts/expt2/"
+                path00 = "/home/russeeawon/testing/791516_expts/expt2/"
 
-                path00 = "/home/russeeawon/testing/2002459_expts/expt2/"
+                # path00 = "/home/russeeawon/testing/2002459_expts/expt2/"
 
 
 
