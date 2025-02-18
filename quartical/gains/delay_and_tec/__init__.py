@@ -92,11 +92,6 @@ class DelayAndTec(ParameterizedGain):
         f_map = term_kwargs[f"{term_spec.name}_param_freq_map"]
         _, n_chan, n_ant, n_dir, n_corr = gains.shape
 
-        #Call MODEL_DATA column.
-        mdata = ms_kwargs["MODEL_DATA"]
-        #Set to only one direction.
-        data = data/mdata[:, :, 0, :]
-
 
         #what about dir_maps?
         # dir_maps = np.zeros(1, dtype=np.int32)
@@ -158,7 +153,6 @@ class DelayAndTec(ParameterizedGain):
             )
 
             for uf in ufint:
-
                 fsel = np.where(f_map == uf)[0]
                 sel_n_chan = fsel.size
                 ##in inverse frequency domain
@@ -166,6 +160,17 @@ class DelayAndTec(ParameterizedGain):
 
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
+
+                
+                nonzero_count = np.count_nonzero(fsel_data, axis=(1, 2))
+
+                #Set threshold on the number of nonzero entries along channels
+                threshold0 = 0.5 #20% of visibilities are zero >> flagged
+                param_flag_sel = np.where(nonzero_count<= threshold0*fsel_data.shape[1]*fsel_data.shape[2], 1, 0)
+                param_flag_sel[ref_ant] = 0
+                param_flags[ut, uf, param_flag_sel, :] = 1
+                gain_flags[ut, :, param_flag_sel, :] = 1
+
 
                 #Initialise array to contain delay and tec estimates
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
@@ -239,7 +244,6 @@ class DelayAndTec(ParameterizedGain):
                                 #only assign tec
                                 params[t, uf, p, 0, 2] = tec_est[p, 1]
                                 params_assigned[t, uf, p, 0, 2] = 1
-
 
             
                 # path00 = "/home/russeeawon/testing/791314_expts/expt2/"
@@ -325,6 +329,7 @@ class DelayAndTec(ParameterizedGain):
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
+
                 #Initialise array to contain delay and tec estimates
                 
                 delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
@@ -338,9 +343,8 @@ class DelayAndTec(ParameterizedGain):
                     )
 
 
-
-                #select again!
-                #Attempting to tweak the peak selection for the previously non-dominant peak
+                # select again!
+                # Attempting to tweak the peak selection for the previously non-dominant peak
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
                     if p == ref_ant:
                         if n_corr == 1:
@@ -381,7 +385,6 @@ class DelayAndTec(ParameterizedGain):
                                 params[t, uf, p, 0, 3] = delay_est[p, 1]
 
 
-
                 np.save(path0+"delayest1_t{}.npy".format(ut), params[0, 0, :, 0, 1])
                 np.save(path0+"delay_fftarr1_t{}.npy".format(ut), fft_arrk)
                 np.save(path0+"delay_fft_freq1_t{}.npy".format(ut), fft_freqk)
@@ -389,7 +392,6 @@ class DelayAndTec(ParameterizedGain):
                 np.save(path0+"tec_fftarr1_t{}.npy".format(ut), fft_arrt)
                 np.save(path0+"tec_fft_freq1_t{}.npy".format(ut), fft_freqt)
                             
-
 
         apply_param_flags_to_params(param_flags, params, 0)
         apply_gain_flags_to_gains(gain_flags, gains)
@@ -446,6 +448,8 @@ class DelayAndTec(ParameterizedGain):
 
         fft_arr = np.zeros((n_ant, nbins, n_param), dtype=fsel_data.dtype)
 
+
+
         for i in range(n_param):
             if i == 0:
                 datak = fsel_data[:, :, 0]
@@ -453,6 +457,10 @@ class DelayAndTec(ParameterizedGain):
                 datak = fsel_data[:, :, -1]
             else:
                 raise ValueError("Unsupported number of parameters for delay.")
+
+            #Normalising the data column with respect to the amplitude.
+            if np.abs(datak).all() != 0:
+                datak = datak/np.abs(datak)
 
             vis_finufft = finufft.nufft1d3(
                 2 * np.pi * freq,
