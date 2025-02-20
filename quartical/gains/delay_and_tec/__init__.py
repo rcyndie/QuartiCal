@@ -396,57 +396,54 @@ class DelayAndTec(ParameterizedGain):
                 np.save(path0+"tec_fft_freq1_t{}.npy".format(ut), fft_freqt)
 
 
-        ##Apply a lower and upper limit on the parameter values.
-        # delay_lim = 1e-7
-        # tec_lim = 8e8
-
-        #Outlier sensitivity threshold (higher=less strict)
-        outlier_threshold_fac = 3
+        for p in range(n_ant):
+            #Check for any outliers along time axis.
+            params[:, 0, p, 0] = apply_outlier_filter(params[:, 0, p, 0], sel_filter="lw_up_lim", interp=False)
 
 
         #Obtain the outlier indices and the valid indices
-        params_d0 = params[:, :, :, :, 1].flatten() #numpy interp expects 1D arrays
-        # delay_outlier_mask0 = np.abs(params_d0) >= delay_lim
-        #Moderate filtering (=3)
-        delay_outlier_mask0 = np.abs(params_d0-np.median(params_d0)) >= \
-            outlier_threshold_fac*np.median(np.abs(params_d0-np.median(params_d0)))
-        delay_outlier_ind0 = np.where(delay_outlier_mask0)[0]
-        valid_delay_ind0 = np.where(~delay_outlier_mask0)[0]
-        if np.sum(delay_outlier_mask0) != 0 and np.sum(valid_delay_ind0) != 0:
-            params_d0[delay_outlier_mask0] = np.interp(delay_outlier_ind0, valid_delay_ind0, params_d0[valid_delay_ind0])
-        params[..., 1] = params_d0.reshape(params.shape[:4])
+        # params_d0 = params[:, :, :, :, 1].flatten() #numpy interp expects 1D arrays
+        # # delay_outlier_mask0 = np.abs(params_d0) >= delay_lim
+        # #Moderate filtering (=3)
+        # delay_outlier_mask0 = np.abs(params_d0-np.median(params_d0)) >= \
+        #     outlier_threshold_fac*np.median(np.abs(params_d0-np.median(params_d0)))
+        # delay_outlier_ind0 = np.where(delay_outlier_mask0)[0]
+        # valid_delay_ind0 = np.where(~delay_outlier_mask0)[0]
+        # if np.sum(delay_outlier_mask0) != 0 and np.sum(valid_delay_ind0) != 0:
+        #     params_d0[delay_outlier_mask0] = np.interp(delay_outlier_ind0, valid_delay_ind0, params_d0[valid_delay_ind0])
+        # params[..., 1] = params_d0.reshape(params.shape[:4])
 
 
-        params_t0 = params[:, :, :, :, 0].flatten() #numpy interp expects 1D arrays
-        # tec_outlier_mask0 = np.abs(params_t0) >= tec_lim
-        tec_outlier_mask0 = np.abs(params_t0-np.median(params_t0)) >= \
-            outlier_threshold_fac*np.median(np.abs(params_t0-np.median(params_t0)))
-        tec_outlier_ind0 = np.where(tec_outlier_mask0)[0]
-        valid_tec_ind0 = np.where(~tec_outlier_mask0)[0]
-        if np.sum(tec_outlier_mask0) != 0 and np.sum(valid_tec_ind0) != 0:
-            params_t0[tec_outlier_mask0] = np.interp(tec_outlier_ind0, valid_tec_ind0, params_t0[valid_tec_ind0])
-        params[..., 0] = params_t0.reshape(params.shape[:4])
+        # params_t0 = params[:, :, :, :, 0].flatten() #numpy interp expects 1D arrays
+        # # tec_outlier_mask0 = np.abs(params_t0) >= tec_lim
+        # tec_outlier_mask0 = np.abs(params_t0-np.median(params_t0)) >= \
+        #     outlier_threshold_fac*np.median(np.abs(params_t0-np.median(params_t0)))
+        # tec_outlier_ind0 = np.where(tec_outlier_mask0)[0]
+        # valid_tec_ind0 = np.where(~tec_outlier_mask0)[0]
+        # if np.sum(tec_outlier_mask0) != 0 and np.sum(valid_tec_ind0) != 0:
+        #     params_t0[tec_outlier_mask0] = np.interp(tec_outlier_ind0, valid_tec_ind0, params_t0[valid_tec_ind0])
+        # params[..., 0] = params_t0.reshape(params.shape[:4])
 
-        if n_corr > 1:
-            params_d1 = params[:, :, :, :, 3].flatten() #numpy interp expects 1D arrays
-            # delay_outlier_mask1 = np.abs(params_d1) >= delay_lim
-            delay_outlier_mask1 = np.abs(params_d1-np.median(params_d1)) >= \
-                outlier_threshold_fac*np.median(np.abs(params_d1-np.median(params_d1)))
-            delay_outlier_ind1 = np.where(delay_outlier_mask1)[0]
-            valid_delay_ind1 = np.where(~delay_outlier_mask1)[0]
-            if np.sum(delay_outlier_mask1) != 0 and np.sum(valid_delay_ind1) != 0:
-                params_d1[delay_outlier_mask1] = np.interp(delay_outlier_ind1, valid_delay_ind1, params_d1[valid_delay_ind1])
-            params[..., 3] = params_d1.reshape(params.shape[:4])
+        # if n_corr > 1:
+        #     params_d1 = params[:, :, :, :, 3].flatten() #numpy interp expects 1D arrays
+        #     # delay_outlier_mask1 = np.abs(params_d1) >= delay_lim
+        #     delay_outlier_mask1 = np.abs(params_d1-np.median(params_d1)) >= \
+        #         outlier_threshold_fac*np.median(np.abs(params_d1-np.median(params_d1)))
+        #     delay_outlier_ind1 = np.where(delay_outlier_mask1)[0]
+        #     valid_delay_ind1 = np.where(~delay_outlier_mask1)[0]
+        #     if np.sum(delay_outlier_mask1) != 0 and np.sum(valid_delay_ind1) != 0:
+        #         params_d1[delay_outlier_mask1] = np.interp(delay_outlier_ind1, valid_delay_ind1, params_d1[valid_delay_ind1])
+        #     params[..., 3] = params_d1.reshape(params.shape[:4])
 
-            params_t1 = params[:, :, :, :, 2].flatten() #numpy interp expects 1D arrays
-            # tec_outlier_mask1 = np.abs(params_t1) >= tec_lim
-            tec_outlier_mask1 = np.abs(params_t1-np.median(params_t1)) >= \
-                outlier_threshold_fac*np.median(np.abs(params_t1-np.median(params_t1)))
-            tec_outlier_ind1 = np.where(tec_outlier_mask1)[0]
-            valid_tec_ind1 = np.where(~tec_outlier_mask1)[0]
-            if np.sum(tec_outlier_mask1) != 0 and np.sum(valid_tec_ind1) != 0:
-                params_t1[tec_outlier_mask1] = np.interp(tec_outlier_ind1, valid_tec_ind1, params_t1[valid_tec_ind1])
-            params[..., 2] = params_t1.reshape(params.shape[:4])     
+        #     params_t1 = params[:, :, :, :, 2].flatten() #numpy interp expects 1D arrays
+        #     # tec_outlier_mask1 = np.abs(params_t1) >= tec_lim
+        #     tec_outlier_mask1 = np.abs(params_t1-np.median(params_t1)) >= \
+        #         outlier_threshold_fac*np.median(np.abs(params_t1-np.median(params_t1)))
+        #     tec_outlier_ind1 = np.where(tec_outlier_mask1)[0]
+        #     valid_tec_ind1 = np.where(~tec_outlier_mask1)[0]
+        #     if np.sum(tec_outlier_mask1) != 0 and np.sum(valid_tec_ind1) != 0:
+        #         params_t1[tec_outlier_mask1] = np.interp(tec_outlier_ind1, valid_tec_ind1, params_t1[valid_tec_ind1])
+        #     params[..., 2] = params_t1.reshape(params.shape[:4])     
 
 
         apply_param_flags_to_params(param_flags, params, 0)
@@ -531,3 +528,65 @@ class DelayAndTec(ParameterizedGain):
         est_arr[~valid_ant] = 0
 
         return est_arr, fft_arr, fft_freq
+
+
+    
+    def select_outlier_filter(params, sel_filter="MAD", label0="K"):
+        """
+        Use this function to select the outlier filter to return a mask.
+
+        """
+
+        if sel_filter == "lw_up_lim":
+            ##Apply a lower and upper limit on the parameter values.
+            if label0 == "K":
+                lim = 1e-7
+            elif label0 == "T":
+                lim = 8e8
+            #Return a mask that identifies outliers.
+            return  np.abs(params) >= lim
+
+        elif sel_filter == "MAD":
+            #Outlier sensitivity threshold (higher=less strict)
+            outlier_threshold_fac = 3
+
+            return np.abs(params-np.median(params)) >= \
+                outlier_threshold_fac*np.median(np.abs(params-np.median(params)))
+        else:
+            return NotImplementedError
+        
+        return mask
+    
+
+    def apply_outlier_filter(params, sel_filter, interp=False):
+        """
+        Use this function to apply the selected filter.
+        In this case, params is of shape (ntint, nparam).
+
+        """
+
+        params_d0 = params[:, 1].flatten()
+        params_t0 = params[:, 0].flatten()
+
+        mask_d0 = select_outlier_filter(params_d0, sel_filter="lw_up_lim", label0="K")
+        mask_t0 = select_outlier_filter(params_t0, sel_filter="lw_up_lim", label0="T")
+
+        params_d0[mask_d0] = np.nan
+        params_t0[mask_t0] = np.nan
+        params[:, 1] = params_d0.reshape(params.shape[0])
+        params[:, 0] = params_t0.reshape(params.shape[0])
+
+        if params.shape[1] > 2:
+            params_d1 = params[:, 3].flatten()
+            params_t1 = params[:, 2].flatten()
+
+            mask_d1 = select_outlier_filter(params_d1, sel_filter="lw_up_lim", label0="K")
+            mask_t1 = select_outlier_filter(params_t1, sel_filter="lw_up_lim", label0="T")
+
+            params_d1[mask_d1] = np.nan
+            params_t1[mask_t1] = np.nan
+            params[:, 3] = params_d1.reshape(params.shape[0])
+            params[:, 2] = params_t1.reshape(params.shape[0])
+
+
+        return params
