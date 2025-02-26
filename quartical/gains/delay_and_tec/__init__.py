@@ -535,8 +535,8 @@ class DelayAndTec(ParameterizedGain):
 
         """
 
-        params_d0 = params[:, 1].flatten()
-        params_t0 = params[:, 0].flatten()
+        params_d0 = params[:, 1]
+        params_t0 = params[:, 0]
 
         mask_d0 = self.select_outlier_filter(params_d0, sel_filter, label0="K")
         mask_t0 = self.select_outlier_filter(params_t0, sel_filter, label0="T")
@@ -556,12 +556,12 @@ class DelayAndTec(ParameterizedGain):
             params_d0[mask_d0] = np.nan
             params_t0[mask_t0] = np.nan
         
-        params[:, 1] = params_d0.reshape(params.shape[0])
-        params[:, 0] = params_t0.reshape(params.shape[0])
+        params[:, 1] = params_d0
+        params[:, 0] = params_t0
 
         if params.shape[1] == 4:
-            params_d1 = params[:, 3].flatten()
-            params_t1 = params[:, 2].flatten()
+            params_d1 = params[:, 3]
+            params_t1 = params[:, 2]
 
             mask_d1 = self.select_outlier_filter(params_d1, sel_filter, label0="K")
             mask_t1 = self.select_outlier_filter(params_t1, sel_filter, label0="T")
@@ -581,8 +581,8 @@ class DelayAndTec(ParameterizedGain):
                 params_d1[mask_d1] = np.nan
                 params_t1[mask_t1] = np.nan
 
-            params[:, 3] = params_d1.reshape(params.shape[0])
-            params[:, 2] = params_t1.reshape(params.shape[0])
+            params[:, 3] = params_d1
+            params[:, 2] = params_t1
 
 
         return params
