@@ -1,10 +1,7 @@
 import numpy as np
-<<<<<<< HEAD
 import finufft
 from scipy.signal import medfilt
 from scipy.ndimage import median_filter
-=======
->>>>>>> upstream/main
 from collections import namedtuple
 from quartical.gains.conversion import no_op, trig_to_angle
 from quartical.gains.parameterized_gain import ParameterizedGain
@@ -16,12 +13,9 @@ from quartical.gains.general.flagging import (
     apply_gain_flags_to_gains,
     apply_param_flags_to_params
 )
-<<<<<<< HEAD
 from quartical.gains.general.generics import compute_corrected_residual
 
 
-=======
->>>>>>> upstream/main
 
 # Overload the default measurement set inputs to include the frequencies.
 ms_inputs = namedtuple(
