@@ -1,7 +1,10 @@
 import numpy as np
+<<<<<<< HEAD
 import finufft
 from scipy.signal import medfilt
 from scipy.ndimage import median_filter
+=======
+>>>>>>> upstream/main
 from collections import namedtuple
 from quartical.gains.conversion import no_op, trig_to_angle
 from quartical.gains.parameterized_gain import ParameterizedGain
@@ -13,9 +16,12 @@ from quartical.gains.general.flagging import (
     apply_gain_flags_to_gains,
     apply_param_flags_to_params
 )
+<<<<<<< HEAD
 from quartical.gains.general.generics import compute_corrected_residual
 
 
+=======
+>>>>>>> upstream/main
 
 # Overload the default measurement set inputs to include the frequencies.
 ms_inputs = namedtuple(
@@ -60,8 +66,7 @@ class DelayAndTec(ParameterizedGain):
 
         return [n.format(c) for c in param_corr for n in template]
 
-
-    def init_term(self, term_spec, ref_ant, ms_kwargs, term_kwargs):
+    def init_term(self, term_spec, ref_ant, ms_kwargs, term_kwargs, meta=None):
         """Initialise the gains (and parameters)."""
 
         gains, gain_flags, params, param_flags = super().init_term(
@@ -282,6 +287,7 @@ class DelayAndTec(ParameterizedGain):
             term_kwargs[f"{self.name}_param_freq_map"],
         )
 
+<<<<<<< HEAD
         #Save the midway gains
         np.save(path0+"gains0.npy", gains)
         # np.save(path0+"data0.npy", data)
@@ -605,3 +611,9 @@ class DelayAndTec(ParameterizedGain):
                 params_t1[mask_t1] = np.nan
 
         return params
+=======
+        apply_param_flags_to_params(param_flags, params, 0)
+        apply_gain_flags_to_gains(gain_flags, gains)
+
+        return gains, gain_flags, params, param_flags
+>>>>>>> upstream/main
