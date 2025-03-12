@@ -1,5 +1,6 @@
 import numpy as np
 import finufft
+from scipy.signal import medfilt
 from scipy.ndimage import median_filter
 from collections import namedtuple
 from quartical.gains.conversion import no_op, trig_to_angle
@@ -111,7 +112,7 @@ class DelayAndTec(ParameterizedGain):
         utint = np.unique(t_map)
         ufint = np.unique(f_map)
 
-
+        
         if n_corr == 1:
             n_paramt = 1 #number of parameters in TEC
             n_paramk = 1 #number of parameters in delay
@@ -187,13 +188,16 @@ class DelayAndTec(ParameterizedGain):
                     fsel_data, tec_est, invfreq, valid_ant, type="t"
                     )
 
+                #preference coef towards TEC
+                diff_tol = 0.
+
 
                 #Array of zeros and assign to 1 when selecting peak.
                 #Selecting the dominant peak and letting the other parameter as zero.
                 for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
                     if p == ref_ant:
                         if n_corr == 1:
-                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
+                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[q, :, 0])**2):
                                 #delay is dominant >> only assign delay
                                 params[t, uf, q, 0, 1] = -delay_est[q]
                                 params_assigned[t, uf, q, 0, 1] = 1
@@ -202,7 +206,7 @@ class DelayAndTec(ParameterizedGain):
                                 params[t, uf, q, 0, 0] = -tec_est[q]
                                 params_assigned[t, uf, q, 0, 0] = 1
                         elif n_corr > 1:
-                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
+                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[q, :, 0])**2):
                                 #only assign delay
                                 params[t, uf, q, 0, 1] = -delay_est[q, 0]
                                 params_assigned[t, uf, q, 0, 1] = 1
@@ -211,7 +215,7 @@ class DelayAndTec(ParameterizedGain):
                                 params[t, uf, q, 0, 0] = -tec_est[q, 0]
                                 params_assigned[t, uf, q, 0, 0] = 1
                             
-                            if np.max(np.abs(fft_arrk[q, :, 1])**2) > np.max(np.abs(fft_arrt[q, :, 1])**2):
+                            if np.max(np.abs(fft_arrk[q, :, 1])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[q, :, 1])**2):
                                 #only assign delay
                                 params[t, uf, q, 0, 3] = -delay_est[q, 1]
                                 params_assigned[t, uf, q, 0, 3] = 1
@@ -222,7 +226,7 @@ class DelayAndTec(ParameterizedGain):
 
                     else:
                         if n_corr == 1:
-                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
+                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 0])**2):
                                 #delay is dominant >> only assign delay
                                 params[t, uf, p, 0, 1] = delay_est[p]
                                 params_assigned[t, uf, p, 0, 1] = 1
@@ -231,7 +235,7 @@ class DelayAndTec(ParameterizedGain):
                                 params[t, uf, p, 0, 0] = tec_est[p]
                                 params_assigned[t, uf, p, 0, 0] = 1
                         elif n_corr > 1:
-                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > np.max(np.abs(fft_arrt[p, :, 0])**2):
+                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 0])**2):
                                 #only assign delay
                                 params[t, uf, p, 0, 1] = delay_est[p, 0]
                                 params_assigned[t, uf, p, 0, 1] = 1
@@ -240,7 +244,7 @@ class DelayAndTec(ParameterizedGain):
                                 params[t, uf, p, 0, 0] = tec_est[p, 0]
                                 params_assigned[t, uf, p, 0, 0] = 1
 
-                            if np.max(np.abs(fft_arrk[p, :, 1])**2) > np.max(np.abs(fft_arrt[p, :, 1])**2):
+                            if np.max(np.abs(fft_arrk[p, :, 1])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 1])**2):
                                 #only assign delay
                                 params[t, uf, p, 0, 3] = delay_est[p, 1]
                                 params_assigned[t, uf, p, 0, 3] = 1
@@ -253,9 +257,7 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/791314_expts/expt2/"
                 # path00 = "/home/russeeawon/testing/791314_expts/expt3/"
                 # path00 = "/home/russeeawon/testing/791314_expts/expt4/"
-
                 # path00 = "/home/russeeawon/testing/791516_expts/expt2/"
-
                 path00 = "/home/russeeawon/testing/2002459_expts/expt2/"
 
 
@@ -397,23 +399,39 @@ class DelayAndTec(ParameterizedGain):
                 np.save(path0+"tec_fft_freq1_t{}.npy".format(ut), fft_freqt)
 
 
-        for p in range(n_ant):
+
+        # for p in range(n_ant):
             #Check for any outliers along time axis.
             # params[:, 0, p, 0] = self.apply_outlier_filter(params[:, 0, p, 0], sel_filter="lw_up_lim", interp=False)
-            params[:, 0, p, 0] = self.apply_outlier_filter(params[:, 0, p, 0], sel_filter="lw_up_lim", interp=True)
-            # params[:, 0, p, 0] = self.apply_outlier_filter(params[:, 0, p, 0], sel_filter="mad", interp=False)
+            # params[:, 0, p, 0] = self.apply_outlier_filter(params[:, 0, p, 0], sel_filter="lw_up_lim", interp=True)
 
-            #Skip last index when assigning param_flags
-            param_flag_sel_withfilter = np.where(np.isnan(params[:, 0, p, 0]).any(axis=1))
-            #Flag any NaN
-            param_flags[param_flag_sel_withfilter, 0, p, 0] = 1
-            gain_flags[param_flag_sel_withfilter, :, p, 0] = 1
-
+        #     #Skip last index when assigning param_flags
+        #     param_flag_sel_withfilter = np.where(np.isnan(params[:, 0, p, 0]).any(axis=1))
+        #     #Flag any NaN
+        #     param_flags[param_flag_sel_withfilter, 0, p, 0] = 1
+        #     gain_flags[param_flag_sel_withfilter, :, p, 0] = 1
 
 
         #Do not flag the ref_ant.
-        param_flags[:, :, ref_ant, :] = 0
-        gain_flags[:, :, ref_ant, :] = 0
+        # param_flags[:, :, ref_ant, :] = 0
+        # gain_flags[:, :, ref_ant, :] = 0
+
+
+        #Choose a window size that must be odd.
+        window_size = 11
+        run_median_filter = False
+        # run_median_filter = True
+
+        if run_median_filter:
+            for p in range(n_ant):
+                for par in range(params.shape[-1]):
+                    par_copy = params[:, 0, p, 0, par].copy()
+                    # par_real = medfilt(par_copy.real, kernel_size=window_size)
+                    # par_imag = medfilt(par_copy.imag, kernel_size=window_size)
+                    # params[:, 0, p, 0, par] = par_real + 1j*par_imag
+
+                    params[:, 0, p, 0, par] = median_filter(par_copy, size=window_size, mode="reflect")
+
 
 
         apply_param_flags_to_params(param_flags, params, 0)
@@ -451,7 +469,7 @@ class DelayAndTec(ParameterizedGain):
         nbins = int(max_delta/ nyq_rate)
 
         if type == "k":
-            nbins = 4*nbins
+            nbins = 6*nbins
             fft_freq = np.fft.fftfreq(nbins, dfreq)
             fft_freq = np.fft.fftshift(fft_freq)
 
@@ -510,9 +528,9 @@ class DelayAndTec(ParameterizedGain):
         if sel_filter == "lw_up_lim": #filter1
             ##Apply a lower and upper limit on the parameter values.
             if label0 == "K":
-                lim = 1e-7
+                lim = 0.1e-7
             elif label0 == "T":
-                lim = 5.5e8
+                lim = 1e8
             #Return a mask that identifies outliers.
             return  np.abs(params) >= lim
 
@@ -535,6 +553,7 @@ class DelayAndTec(ParameterizedGain):
 
         """
 
+
         params_d0 = params[:, 1]
         params_t0 = params[:, 0]
 
@@ -545,19 +564,19 @@ class DelayAndTec(ParameterizedGain):
             delay_outlier_ind0 = np.where(mask_d0)[0]
             valid_delay_ind0 = np.where(~mask_d0)[0]
             if np.sum(mask_d0) != 0 and np.sum(valid_delay_ind0) != 0:
-                params_d0[mask_d0] = np.interp(delay_outlier_ind0, valid_delay_ind0, params_d0[valid_delay_ind0])
-            
+                params_d0[:] = \
+                    np.interp(np.arange(params_d0.size).astype(np.float64), valid_delay_ind0.astype(np.float64), params_d0[valid_delay_ind0])
+
             tec_outlier_ind0 = np.where(mask_t0)[0]
             valid_tec_ind0 = np.where(~mask_t0)[0]
             if np.sum(mask_t0) != 0 and np.sum(valid_tec_ind0) != 0:
-                params_t0[mask_t0] = np.interp(tec_outlier_ind0, valid_tec_ind0, params_t0[valid_tec_ind0])
+                params_t0[:] = \
+                    np.interp(np.arange(params_t0.size).astype(np.float64), valid_tec_ind0.astype(np.float64), params_t0[valid_tec_ind0])
         
         else:
             params_d0[mask_d0] = np.nan
             params_t0[mask_t0] = np.nan
         
-        params[:, 1] = params_d0
-        params[:, 0] = params_t0
 
         if params.shape[1] == 4:
             params_d1 = params[:, 3]
@@ -570,19 +589,19 @@ class DelayAndTec(ParameterizedGain):
                 delay_outlier_ind1 = np.where(mask_d1)[0]
                 valid_delay_ind1 = np.where(~mask_d1)[0]
                 if np.sum(mask_d1) != 0 and np.sum(valid_delay_ind1) != 0:
-                    params_d1[mask_d1] = np.interp(delay_outlier_ind1, valid_delay_ind1, params_d1[valid_delay_ind1])
-                
+                    params_d1[:] = \
+                        np.interp(np.arange(params_d1.size).astype(np.float64), valid_delay_ind1.astype(np.float64), params_d1[valid_delay_ind1])
+
+             
                 tec_outlier_ind1 = np.where(mask_t1)[0]
                 valid_tec_ind1 = np.where(~mask_t1)[0]
                 if np.sum(mask_t1) != 0 and np.sum(valid_tec_ind1) != 0:
-                    params_t1[mask_t1] = np.interp(tec_outlier_ind1, valid_tec_ind1, params_t1[valid_tec_ind1])
+                    params_t1[:] = \
+                        np.interp(np.arange(params_t1.size).astype(np.float64), valid_tec_ind1.astype(np.float64), params_t1[valid_tec_ind1])
+
 
             else:
                 params_d1[mask_d1] = np.nan
                 params_t1[mask_t1] = np.nan
-
-            params[:, 3] = params_d1
-            params[:, 2] = params_t1
-
 
         return params

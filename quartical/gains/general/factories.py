@@ -383,7 +383,7 @@ def v1ct_wmul_v2_factory(mode):
 
 
 def unpack_factory(mode):
-
+    
     if mode.literal_value == 4:
         def impl(invec):
             return invec[0], invec[1], invec[2], invec[3]
