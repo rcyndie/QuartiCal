@@ -417,17 +417,14 @@ class DelayAndTec(ParameterizedGain):
 
 
         #Choose a window size that must be odd.
-        window_size = 11
-        run_median_filter = False
-        # run_median_filter = True
+        window_size = 25
+        # run_median_filter = False
+        run_median_filter = True
 
         if run_median_filter:
             for p in range(n_ant):
                 for par in range(params.shape[-1]):
                     par_copy = params[:, 0, p, 0, par].copy()
-                    # par_real = medfilt(par_copy.real, kernel_size=window_size)
-                    # par_imag = medfilt(par_copy.imag, kernel_size=window_size)
-                    # params[:, 0, p, 0, par] = par_real + 1j*par_imag
 
                     params[:, 0, p, 0, par] = median_filter(par_copy, size=window_size, mode="reflect")
 
