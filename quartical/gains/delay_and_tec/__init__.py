@@ -128,6 +128,15 @@ class DelayAndTec(ParameterizedGain):
         #Before any parameter assignment, create an array to store the dominant peak selection.
         params_assigned = np.zeros(params.shape, dtype=np.int32)
 
+        import ipdb; ipdb.set_trace()
+        delay_arr = np.zeros((params.shape[0], n_ant, n_paramk), dtype=np.float64)
+        tec_arr = np.zeros((params.shape[0], n_ant, n_paramt), dtype=np.float64)
+
+        #Define counts for delay and tec.
+        count_peak_delay = np.zeros((n_ant), dtype=np.int64)
+        count_peak_tec = np.zeros((n_ant), dtype=np.int64)
+
+
         for ut in utint:
             sel = np.where((t_map == ut) & (a1 != a2))
             ant_map_pq = np.where(a1[sel] == ref_ant, a2[sel], 0)
@@ -187,72 +196,6 @@ class DelayAndTec(ParameterizedGain):
                     fsel_data, tec_est, invfreq, valid_ant, type="t"
                     )
 
-                #preference coef towards TEC
-                diff_tol = 0.
-
-
-                #Array of zeros and assign to 1 when selecting peak.
-                #Selecting the dominant peak and letting the other parameter as zero.
-                for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
-                    if p == ref_ant:
-                        if n_corr == 1:
-                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[q, :, 0])**2):
-                                #delay is dominant >> only assign delay
-                                params[t, uf, q, 0, 1] = -delay_est[q]
-                                params_assigned[t, uf, q, 0, 1] = 1
-                            else:
-                                #tec is dominant >> only assign tec
-                                params[t, uf, q, 0, 0] = -tec_est[q]
-                                params_assigned[t, uf, q, 0, 0] = 1
-                        elif n_corr > 1:
-                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[q, :, 0])**2):
-                                #only assign delay
-                                params[t, uf, q, 0, 1] = -delay_est[q, 0]
-                                params_assigned[t, uf, q, 0, 1] = 1
-                            else:
-                                #only assign tec
-                                params[t, uf, q, 0, 0] = -tec_est[q, 0]
-                                params_assigned[t, uf, q, 0, 0] = 1
-                            
-                            if np.max(np.abs(fft_arrk[q, :, 1])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[q, :, 1])**2):
-                                #only assign delay
-                                params[t, uf, q, 0, 3] = -delay_est[q, 1]
-                                params_assigned[t, uf, q, 0, 3] = 1
-                            else:
-                                #only assign tec
-                                params[t, uf, q, 0, 2] = -tec_est[q, 1]
-                                params_assigned[t, uf, q, 0, 2] = 1
-
-                    else:
-                        if n_corr == 1:
-                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 0])**2):
-                                #delay is dominant >> only assign delay
-                                params[t, uf, p, 0, 1] = delay_est[p]
-                                params_assigned[t, uf, p, 0, 1] = 1
-                            else:
-                                #tec is dominant >> only assign tec
-                                params[t, uf, p, 0, 0] = tec_est[p]
-                                params_assigned[t, uf, p, 0, 0] = 1
-                        elif n_corr > 1:
-                            if np.max(np.abs(fft_arrk[p, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 0])**2):
-                                #only assign delay
-                                params[t, uf, p, 0, 1] = delay_est[p, 0]
-                                params_assigned[t, uf, p, 0, 1] = 1
-                            else:
-                                #only assign tec
-                                params[t, uf, p, 0, 0] = tec_est[p, 0]
-                                params_assigned[t, uf, p, 0, 0] = 1
-
-                            if np.max(np.abs(fft_arrk[p, :, 1])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 1])**2):
-                                #only assign delay
-                                params[t, uf, p, 0, 3] = delay_est[p, 1]
-                                params_assigned[t, uf, p, 0, 3] = 1
-                            else:
-                                #only assign tec
-                                params[t, uf, p, 0, 2] = tec_est[p, 1]
-                                params_assigned[t, uf, p, 0, 2] = 1
-
-            
                 # path00 = "/home/russeeawon/testing/791314_expts/expt2/"
                 # path00 = "/home/russeeawon/testing/791314_expts/expt3/"
                 # path00 = "/home/russeeawon/testing/791314_expts/expt4/"
@@ -272,6 +215,110 @@ class DelayAndTec(ParameterizedGain):
                 np.save(path0+"tecest0_t{}.npy".format(ut), params[0, 0, :, 0, 0])
                 np.save(path0+"tec_fftarr0_t{}.npy".format(ut), fft_arrt)
                 np.save(path0+"tec_fft_freq0_t{}.npy".format(ut), fft_freqt)
+
+
+                #Store in respective arrays.
+                delay_arr[ut] = delay_est
+                tec_arr[ut] = tec_est
+
+            
+
+                #Count the number of peaks.
+                #Selecting the dominant peak and letting the other parameter as zero.
+                for t, p, q in zip(t_map[sel], a1[sel], a2[sel]):
+                    if p == ref_ant:
+                        if n_corr == 1:
+                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
+                                #delay is dominant >> only assign delay
+                                count_peak_delay[q] += 1
+                            else:
+                                #tec is dominant >> only assign tec
+                                count_peak_tec[q] += 1
+                        elif n_corr > 1:
+                            if np.max(np.abs(fft_arrk[q, :, 0])**2) > np.max(np.abs(fft_arrt[q, :, 0])**2):
+                                #only assign delay
+                                count_peak_delay[q] += 1
+                            else:
+                                #only assign tec
+                                count_peak_tec[q] += 1
+                            
+                            if np.max(np.abs(fft_arrk[q, :, 1])**2) > np.max(np.abs(fft_arrt[q, :, 1])**2):
+                                #only assign delay
+                                count_peak_delay[q] += 1
+                            else:
+                                #only assign tec
+                                count_peak_tec[q] += 1
+            
+                else:
+                    if n_corr == 1:
+                        if np.max(np.abs(fft_arrk[p, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 0])**2):
+                            #delay is dominant >> only assign delay
+                            count_peak_delay[p] += 1
+                        else:
+                            #only assign tec
+                            count_peak_tec[p] += 1
+                    elif n_corr > 1:
+                        if np.max(np.abs(fft_arrk[p, :, 0])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 0])**2):
+                            #only assign delay
+                            count_peak_delay[p] += 1
+                        else:
+                            #only assign tec
+                            count_peak_tec[p] += 1
+
+                        if np.max(np.abs(fft_arrk[p, :, 1])**2) > (1. + diff_tol) * np.max(np.abs(fft_arrt[p, :, 1])**2):
+                            #only assign delay
+                            count_peak_delay[p] += 1
+                        else:
+                            #only assign tec
+                            count_peak_tec[p] += 1
+
+        #Assign parameters based on the number of peaks across the obs (per baseline).
+        for p, q in zip(a1[sel], a2[sel]):
+            if p == ref_ant:
+                if n_corr == 1:
+                    if count_peak_delay[q] > count_peak_tec[q]: #delay is dominant
+                        params[:, :, q, 0, 1] = -delay_arr[:, q]
+                        params_assigned[:, :, q, 0, 1] = 1
+                    else:
+                        params[:, :, q, 0, 0] = -tec_arr[:, q]
+                        params_assigned[:, :, q, 0, 0] = 1
+                elif n_corr > 1:
+                    if count_peak_delay[q] > count_peak_tec[q]: #only assign delay
+                        params[:, :, q, 0, 1] = -delay_arr[:, q, 0]
+                        params_assigned[:, :, q, 0, 1] = 1
+
+                        params[:, :, q, 0, 3] = -delay_arr[:, q, 1]
+                        params_assigned[t, uf, q, 0, 3] = 1
+                    else:
+                        params[:, :, q, 0, 0] = -tec_arr[:, q, 0]
+                        params_assigned[:, :, q, 0, 0] = 1
+                    
+                        params[:, :, q, 0, 2] = -tec_arr[:, q, 1]
+                        params_assigned[:, :, q, 0, 2] = 1
+
+            else:
+                if n_corr == 1:
+                    if count_peak_delay[p] > count_peak_tec[p]: #delay is dominant
+                        params[:, :, p, 0, 1] = delay_arr[:, p]
+                        params_assigned[:, :, p, 0, 1] = 1
+                    else:
+                        params[:, :, p, 0, 0] = tec_arr[:, p]
+                        params_assigned[:, :, p, 0, 0] = 1
+
+                elif n_corr > 1:
+                    if count_peak_delay[p] > count_peak_tec[p]: #delay is dominant
+                        params[:, :, p, 0, 1] = delay_arr[:, p, 0]
+                        params_assigned[:, :, p, 0, 1] = 1
+
+                        params[:, :, p, 0, 3] = delay_arr[:, p, 1]
+                        params_assigned[:, :, p, 0, 3] = 1
+
+                    else:
+                        params[:, :, p, 0, 0] = tec_arr[:, p, 0]
+                        params_assigned[:, :, p, 0, 0] = 1
+
+                        params[:, :, p, 0, 2] = tec_arr[:, p, 1]
+                        params_assigned[:, :, p, 0, 2] = 1
 
 
         delay_and_tec_params_to_gains(
@@ -418,8 +465,8 @@ class DelayAndTec(ParameterizedGain):
 
         #Choose a window size that must be odd.
         window_size = 25
-        # run_median_filter = False
-        run_median_filter = True
+        run_median_filter = False
+        # run_median_filter = True
 
         if run_median_filter:
             for p in range(n_ant):
