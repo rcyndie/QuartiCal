@@ -464,17 +464,22 @@ class DelayAndTec(ParameterizedGain):
         # gain_flags[:, :, ref_ant, :] = 0
 
 
+
         #Choose a window size that must be odd.
         window_size = 25
-        run_median_filter = False
-        # run_median_filter = True
+        # run_median_filter = False
+        run_median_filter = True
+
 
         if run_median_filter:
             for p in range(n_ant):
+                #Check for param_flags.
+                flag_ind = param_flags[:, 0, p, 0] == 1
                 for par in range(params.shape[-1]):
-                    par_copy = params[:, 0, p, 0, par].copy()
+                    par_copy = params[:, 0, p, 0, par][~flag_ind].copy()
 
-                    params[:, 0, p, 0, par] = median_filter(par_copy, size=window_size, mode="reflect")
+                    #Run median_filter on only unflagged entries.
+                    params[:, 0, p, 0, par][~flag_ind] = median_filter(par_copy, size=window_size, mode="reflect")
 
 
 
