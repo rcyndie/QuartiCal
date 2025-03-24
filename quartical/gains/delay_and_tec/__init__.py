@@ -466,7 +466,7 @@ class DelayAndTec(ParameterizedGain):
 
 
         #Choose a window size that must be odd.
-        window_size = 25
+        window_size = 50
         # run_median_filter = False
         run_median_filter = True
 
