@@ -175,8 +175,9 @@ class DelayAndTec(ParameterizedGain):
                 nonzero_count = np.count_nonzero(fsel_data, axis=(1, 2))
 
                 #Set threshold on the number of nonzero entries along channels
-                threshold0 = 0.6 #20% of visibilities are zero >> flagged
-                param_flag_sel = np.where(nonzero_count<= threshold0*fsel_data.shape[1]*fsel_data.shape[2])
+                zero_threshold = 0.1
+                #60% used before>> Flag if more than 40% entries is zero
+                param_flag_sel = np.where(nonzero_count<= (1-zero_threshold)*fsel_data.shape[1]*fsel_data.shape[2])
                 param_flags[ut, uf, param_flag_sel, :] = 1
                 gain_flags[ut, :, param_flag_sel, :] = 1
 
@@ -201,6 +202,7 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/791314_expts/expt4/"
                 # path00 = "/home/russeeawon/testing/791516_expts/expt2/"
                 path00 = "/home/russeeawon/testing/2002459_expts/expt2/"
+                # path00 = "/home/russeeawon/testing/2002459_expts/stimela_test/"
 
 
 
@@ -467,8 +469,8 @@ class DelayAndTec(ParameterizedGain):
 
         #Choose a window size that must be odd.
         window_size = 30
-        run_median_filter = False
-        # run_median_filter = True
+        # run_median_filter = False
+        run_median_filter = True
 
 
         if run_median_filter:
