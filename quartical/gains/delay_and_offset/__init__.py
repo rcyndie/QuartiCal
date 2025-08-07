@@ -176,6 +176,8 @@ class DelayAndOffset(ParameterizedGain):
 
                 # path00 = "/home/russeeawon/testing/lofar_expts/expt1/"
 
+                path00 = "/home/russeeawon/testing/test_misc/expt_ko/"
+
                 path01 = ""
 
                 path0 = path00+path01

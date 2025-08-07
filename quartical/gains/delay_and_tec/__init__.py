@@ -175,7 +175,7 @@ class DelayAndTec(ParameterizedGain):
                 nonzero_count = np.count_nonzero(fsel_data, axis=(1, 2))
 
                 #Set threshold on the number of nonzero entries along channels
-                zero_threshold = 0.1
+                zero_threshold = 0.5
                 #60% used before>> Flag if more than 40% entries is zero
                 param_flag_sel = np.where(nonzero_count<= (1-zero_threshold)*fsel_data.shape[1]*fsel_data.shape[2])
                 param_flags[ut, uf, param_flag_sel, :] = 1
@@ -201,8 +201,14 @@ class DelayAndTec(ParameterizedGain):
                 # path00 = "/home/russeeawon/testing/791314_expts/expt3/"
                 # path00 = "/home/russeeawon/testing/791314_expts/expt4/"
                 # path00 = "/home/russeeawon/testing/791516_expts/expt2/"
-                path00 = "/home/russeeawon/testing/2002459_expts/expt2/"
+                # path00 = "/home/russeeawon/testing/2002459_expts/expt2/"
                 # path00 = "/home/russeeawon/testing/2002459_expts/stimela_test/"
+
+                #experiments with the jax script
+                # path00 = "/home/russeeawon/testing/test_misc/expt_kto/"
+
+
+
 
 
 
@@ -449,28 +455,10 @@ class DelayAndTec(ParameterizedGain):
 
 
 
-        # for p in range(n_ant):
-            #Check for any outliers along time axis.
-            # params[:, 0, p, 0] = self.apply_outlier_filter(params[:, 0, p, 0], sel_filter="lw_up_lim", interp=False)
-            # params[:, 0, p, 0] = self.apply_outlier_filter(params[:, 0, p, 0], sel_filter="lw_up_lim", interp=True)
-
-        #     #Skip last index when assigning param_flags
-        #     param_flag_sel_withfilter = np.where(np.isnan(params[:, 0, p, 0]).any(axis=1))
-        #     #Flag any NaN
-        #     param_flags[param_flag_sel_withfilter, 0, p, 0] = 1
-        #     gain_flags[param_flag_sel_withfilter, :, p, 0] = 1
-
-
-        #Do not flag the ref_ant.
-        # param_flags[:, :, ref_ant, :] = 0
-        # gain_flags[:, :, ref_ant, :] = 0
-
-
-
         #Choose a window size that must be odd.
         window_size = 30
-        # run_median_filter = False
-        run_median_filter = True
+        run_median_filter = False
+        # run_median_filter = True
 
 
         if run_median_filter:
