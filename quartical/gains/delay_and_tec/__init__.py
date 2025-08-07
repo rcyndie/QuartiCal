@@ -129,12 +129,22 @@ class DelayAndTec(ParameterizedGain):
         params_assigned = np.zeros(params.shape, dtype=np.int32)
 
 
-        delay_arr = np.zeros((params.shape[0], n_ant, n_paramk), dtype=np.float64)
-        tec_arr = np.zeros((params.shape[0], n_ant, n_paramt), dtype=np.float64)
+        # delay_arr = np.zeros((params.shape[0], n_ant, n_paramk), dtype=np.float64)
+        # tec_arr = np.zeros((params.shape[0], n_ant, n_paramt), dtype=np.float64)
 
-        #Define counts for delay and tec.
-        count_peak_delay = np.zeros((n_ant), dtype=np.int64)
-        count_peak_tec = np.zeros((n_ant), dtype=np.int64)
+        # #Define counts for delay and tec.
+        # count_peak_delay = np.zeros((n_ant), dtype=np.int64)
+        # count_peak_tec = np.zeros((n_ant), dtype=np.int64)
+
+
+
+        #Choose number of subbands.
+        n_subint = 2
+
+
+        est_arr = np.zeros((n_ant, params.shape[0], n_subint))
+
+        chan_per_subint = int(np.ceil(n_f / n_subint))
 
 
         for ut in utint:
@@ -555,92 +565,3 @@ class DelayAndTec(ParameterizedGain):
         est_arr[~valid_ant] = 0
 
         return est_arr, fft_arr, fft_freq
-
-
-    
-    def select_outlier_filter(self, params, sel_filter="mad", label0="K"):
-        """
-        Use this function to select the outlier filter to return a mask.
-
-        """
-
-        if sel_filter == "lw_up_lim": #filter1
-            ##Apply a lower and upper limit on the parameter values.
-            if label0 == "K":
-                lim = 0.1e-7
-            elif label0 == "T":
-                lim = 1e8
-            #Return a mask that identifies outliers.
-            return  np.abs(params) >= lim
-
-        elif sel_filter == "mad": #filter2
-            #Outlier sensitivity threshold (higher=less strict)
-            outlier_threshold_fac = 8
-
-            return np.abs(params-np.median(params)) >= \
-                outlier_threshold_fac*np.median(np.abs(params-np.median(params)))
-        else:
-            return NotImplementedError
-        
-        return mask
-    
-
-    def apply_outlier_filter(self, params, sel_filter, interp=False):
-        """
-        Use this function to apply the selected filter.
-        In this case, params is of shape (ntint, nparam).
-
-        """
-
-
-        params_d0 = params[:, 1]
-        params_t0 = params[:, 0]
-
-        mask_d0 = self.select_outlier_filter(params_d0, sel_filter, label0="K")
-        mask_t0 = self.select_outlier_filter(params_t0, sel_filter, label0="T")
-
-        if interp:
-            delay_outlier_ind0 = np.where(mask_d0)[0]
-            valid_delay_ind0 = np.where(~mask_d0)[0]
-            if np.sum(mask_d0) != 0 and np.sum(valid_delay_ind0) != 0:
-                params_d0[:] = \
-                    np.interp(np.arange(params_d0.size).astype(np.float64), valid_delay_ind0.astype(np.float64), params_d0[valid_delay_ind0])
-
-            tec_outlier_ind0 = np.where(mask_t0)[0]
-            valid_tec_ind0 = np.where(~mask_t0)[0]
-            if np.sum(mask_t0) != 0 and np.sum(valid_tec_ind0) != 0:
-                params_t0[:] = \
-                    np.interp(np.arange(params_t0.size).astype(np.float64), valid_tec_ind0.astype(np.float64), params_t0[valid_tec_ind0])
-        
-        else:
-            params_d0[mask_d0] = np.nan
-            params_t0[mask_t0] = np.nan
-        
-
-        if params.shape[1] == 4:
-            params_d1 = params[:, 3]
-            params_t1 = params[:, 2]
-
-            mask_d1 = self.select_outlier_filter(params_d1, sel_filter, label0="K")
-            mask_t1 = self.select_outlier_filter(params_t1, sel_filter, label0="T")
-
-            if interp:
-                delay_outlier_ind1 = np.where(mask_d1)[0]
-                valid_delay_ind1 = np.where(~mask_d1)[0]
-                if np.sum(mask_d1) != 0 and np.sum(valid_delay_ind1) != 0:
-                    params_d1[:] = \
-                        np.interp(np.arange(params_d1.size).astype(np.float64), valid_delay_ind1.astype(np.float64), params_d1[valid_delay_ind1])
-
-             
-                tec_outlier_ind1 = np.where(mask_t1)[0]
-                valid_tec_ind1 = np.where(~mask_t1)[0]
-                if np.sum(mask_t1) != 0 and np.sum(valid_tec_ind1) != 0:
-                    params_t1[:] = \
-                        np.interp(np.arange(params_t1.size).astype(np.float64), valid_tec_ind1.astype(np.float64), params_t1[valid_tec_ind1])
-
-
-            else:
-                params_d1[mask_d1] = np.nan
-                params_t1[mask_t1] = np.nan
-
-        return params
