@@ -60,6 +60,7 @@ class DelayAndTec(ParameterizedGain):
 
         return [n.format(c) for c in param_corr for n in template]
 
+
     def init_term(self, term_spec, ref_ant, ms_kwargs, term_kwargs, meta=None):
         """Initialise the gains (and parameters)."""
 
@@ -95,7 +96,6 @@ class DelayAndTec(ParameterizedGain):
 
 
         #what about dir_maps?
-        # dir_maps = np.zeros(1, dtype=np.int32)
         dir_maps = (term_kwargs[f"{term_spec.name}_dir_map"],)
 
         # We only need the baselines which include the ref_ant.
@@ -111,7 +111,12 @@ class DelayAndTec(ParameterizedGain):
         utint = np.unique(t_map)
         ufint = np.unique(f_map)
 
-        
+        n_tint = utint.size
+        n_fint = ufint.size
+
+
+        #Initialise array to contain delay and tec estimates
+        #shape (ntint, nant, ??) (only one delay and one TEC per correlation)
         if n_corr == 1:
             n_paramt = 1 #number of parameters in TEC
             n_paramk = 1 #number of parameters in delay
@@ -125,30 +130,22 @@ class DelayAndTec(ParameterizedGain):
         assert n_param == n_paramk + n_paramt
 
 
-        #Before any parameter assignment, create an array to store the dominant peak selection.
-        params_assigned = np.zeros(params.shape, dtype=np.int32)
-
-
         delay_arr = np.zeros((params.shape[0], n_ant, n_paramk), dtype=np.float64)
         tec_arr = np.zeros((params.shape[0], n_ant, n_paramt), dtype=np.float64)
 
-        # #Define counts for delay and tec.
-        # count_peak_delay = np.zeros((n_ant), dtype=np.int64)
-        # count_peak_tec = np.zeros((n_ant), dtype=np.int64)
 
-
-
-        #Choose number of subbands.
+        #Choose number of subbands (split the entire bandwidth accordingly).
         n_subint = 2
 
-
-        est_arr = np.zeros((n_ant, n_corr, n_subint))
-
-
+        
+        #Evaluate the number of channels per subband.
         chan_per_subint = int(np.ceil(n_chan / n_subint))
 
-        #Also, initialise the gradients array.
-        gradients = np.zeros(n_subint)
+
+        #Also, initialise the gradients array.        
+        subint_est = np.empty((n_tint, n_fint, n_subint, n_ant, n_corr))
+        gradients = np.empty((n_subint))
+
 
 
         for ut in utint:
@@ -176,108 +173,106 @@ class DelayAndTec(ParameterizedGain):
                 out=ref_data
             )
 
-            for uf in range(n_subint):
-                start = uf*chan_per_subint
-                end = (uf+1)*chan_per_subint
-                fsel = f_map[start:end]
-                chan_freq_subint = chan_freq[start:end]
-                dfreq = np.abs(chan_freq_subint[-2]-chan_freq_subint[-1])
 
+            for uf in ufint:
+                fsel = np.where(f_map == uf)[0]
+                fsel_nchan = fsel.size
+                fsel_chan = chan_freq[fsel]
 
-                sel_n_chan = fsel.size
+                #Used to normalise freq
+                scale_factor = 1e9
+                fsel_chan *= 1/scale_factor
+
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
+                #number of channels per subband
+                subint_stride = int(np.ceil(fsel_nchan / n_subint))
+
+
+                for i, si in enumerate(range(0, fsel_nchan, subint_stride)):
+                    si_sel = slice(si, si + subint_stride)
+                    subint_data = fsel_data[:, si_sel]
+
+                    # # NOTE: Collapse correlation axis when term is scalar.
+                    # if self.scalar:
+                    #     subint_data[..., :] = subint_data.sum(
+                    #         axis=-1, keepdims=True
+                    #     )
+
+                    subint_freq = fsel_chan[si_sel]
+                    dfreq = np.abs(subint_freq[-2]-subint_freq[-1])
+
+
+                    #estimate-resolution determines the accuracy of how close do we want the initial estimates \
+                    #to be close to the correct wrap.
+                    est_resolution = 0.001
+                    max_n_wrap = 1 / (2 * dfreq) * (subint_freq[-1] - subint_freq[0])
+                    nbins = int((2 * max_n_wrap) / est_resolution)
+                    fft_freq = np.fft.fftfreq(nbins, dfreq)
+
+
+
+
+                    path00 = "/home/russeeawon/testing/test_misc/expt_kt_robust_delay_and_tec/"
+                    path01 = ""
+                    path0 = path00+path01
+
+                    # np.save(path0+"delayest0_t0.npy", params[0, 0, :, 0, 1])
+                    np.save(path0+"delay_fft_freq0_t0.npy", fft_freq)
+
+
+                    for p in range(n_ant):
+                        for c in range(n_corr):
+                            if c == 0:
+                                datac = subint_data[p, :, 0]
+                            elif c > 1:
+                                datac = subint_data[p, :, -1]
+
+                            fft_arr = np.fft.fft(datac, axis=0, n=nbins)
+                            #shape of subint est array << subint_est = np.empty((n_tint, n_fint, n_subint, n_ant, n_corr))
+                            subint_est[ut, uf, i, p, c] = fft_freq[np.argmax(np.abs(fft_arr), axis=0)]
+
+                            np.save(path0+"delay_fftarr0_t0_ant{}.npy".format(p), fft_arr)
+
+
+                    # Zero the reference antenna/antennas without data.
+                    subint_est[ut, uf, :, ~valid_ant] = 0
+
+
+                    #Also, calculate the gradients generated when fitting the line 1/f = fm + c
+                    gradients[i], _ = np.polyfit(subint_freq, 1/subint_freq, deg=1)
+
+
+
+                #Obtain optimal value of delay and TEC in the least-squares sense.
+                A = np.ones((n_subint, 2), dtype=np.float64)
+                A[:, 1] = gradients
+                # ATAinv = np.linalg.inv(A.T @ A)
                 
-                nonzero_count = np.count_nonzero(fsel_data, axis=(1, 2))
-                #Set threshold on the number of nonzero entries along channels
-                zero_threshold = 0.5
-                #60% used before>> Flag if more than 40% entries is zero
-                param_flag_sel = np.where(nonzero_count<= (1-zero_threshold)*fsel_data.shape[1]*fsel_data.shape[2])
-                param_flags[ut, :, param_flag_sel, :] = 1
-                gain_flags[ut, :, param_flag_sel, :] = 1
-
-                #Do not flag the ref_ant.
-                param_flags[ut, :, ref_ant, :] = 0
-                gain_flags[ut, :, ref_ant, :] = 0
+                #A is found to be singular; use the following instead where lambda helps to regularise the problem
+                # lambda = 1e-6
+                ATAinv = np.linalg.inv(A.T @ A + 1e-6*np.eye(A.shape[1]))
+                ATAinvAT = ATAinv @ A.T
 
 
-                #Initialise array to contain delay and tec estimates
-                #decide on the estimate_resolution
-                #estimate-resolution determines the accuracy of how close do we want the initial estimates \
-                #to be close to the correct wrap.
-                est_resolution = 0.01
-                max_n_wrap = 1 / (2 * dfreq) * (chan_freq_subint[-1] - chan_freq_subint[0])
-                nbins = int((2 * max_n_wrap) / est_resolution)
+                for p in range(n_ant):
+                    for k in range(n_paramk):
+                        if k == 0:
+                            c = 0
+                        elif k == 1:
+                            c = -1
+                        b = subint_est[ut, uf, :, p, c]
+                        x = np.matmul(ATAinvAT, b[..., None])[..., 0]  # Remove trailing dim.
 
 
-
-                fft_freq = np.fft.fftfreq(nbins, dfreq)
-                fft_arr = np.fft.fft(fsel_data, axis=1, n=nbins)
-                est_arr[..., uf] = fft_freq[np.argmax(np.abs(fft_arr), axis=1)]
-                est_arr[~valid_ant] = 0
-
-                import ipdb; ipdb.set_trace()
-
-                #Also, calculate the gradients generated when fitting the line 1/f = fm + c
-                gradients[uf], _ = np.polyfit(chan_freq_subint, 1/chan_freq_subint, deg=1)
+                        #Store in respective arrays.
+                        #shape of delay_arr << np.zeros((params.shape[0], n_ant, n_paramt), dtype=np.float64)
+                        delay_arr[ut, p, k] = x[0]/ scale_factor
+                        tec_arr[ut, p, k] = x[1] * scale_factor
+                    
 
 
-            #Obtain optimal value of delay and TEC in the least-squares sense.
-            A = np.ones((n_subint, 2), dtype=np.float64)
-            A[:, 1] = gradients
-            ATAinv = np.linalg.inv(A.T @ A)
-            ATAinvAT = ATAinv @ A.T
-
-
-            b = est_arr
-            x = np.matmul(ATAinvAT, b[..., None])[..., 0]  # Remove trailing dim.
-            #Store in respective arrays.
-            delay_arr[ut] = x[..., 0]
-            tec_arr[ut] = x[..., 1]
-
-
-            # delay_est = np.zeros((n_ant, n_paramk), dtype=np.float64)
-            # delay_est, fft_arrk, fft_freqk = self.initial_estimates(
-            #     fsel_data, delay_est, chan_freq, valid_ant, type="k"
-            #     )
-
-
-
-
-            # path00 = "/home/russeeawon/testing/791314_expts/expt2/"
-            # path00 = "/home/russeeawon/testing/791314_expts/expt3/"
-            # path00 = "/home/russeeawon/testing/791314_expts/expt4/"
-            # path00 = "/home/russeeawon/testing/791516_expts/expt2/"
-            # path00 = "/home/russeeawon/testing/2002459_expts/expt2/"
-            # path00 = "/home/russeeawon/testing/2002459_expts/stimela_test/"
-
-            #experiments with the jax script
-            # path00 = "/home/russeeawon/testing/test_misc/expt_kto/"
-
-            path00 = "/home/russeeawon/testing/test_misc/expt_kt_robust_delay_and_tec/"
-
-
-
-
-
-            path01 = ""
-
-            path0 = path00+path01
-
-
-            # np.save(path0+"delayest0_t{}.npy".format(ut), params[0, 0, :, 0, 1])
-            # np.save(path0+"delay_fftarr0_t{}.npy".format(ut), fft_arrk)
-            # np.save(path0+"delay_fft_freq0_t{}.npy".format(ut), fft_freqk)
-            # np.save(path0+"tecest0_t{}.npy".format(ut), params[0, 0, :, 0, 0])
-            # np.save(path0+"tec_fftarr0_t{}.npy".format(ut), fft_arrt)
-            # np.save(path0+"tec_fft_freq0_t{}.npy".format(ut), fft_freqt)
-
-
-            
-
-
-        #Assign parameters based on the number of peaks across the obs (per baseline).
         for p, q in zip(a1[sel], a2[sel]):
             if p == ref_ant:
                 if n_corr == 1:
@@ -304,6 +299,10 @@ class DelayAndTec(ParameterizedGain):
                     params[:, :, p, 0, 2] = tec_arr[:, p, 1]
 
 
+    
+
+
+
         delay_and_tec_params_to_gains(
             params,
             gains,
@@ -312,9 +311,87 @@ class DelayAndTec(ParameterizedGain):
         )
 
         #Save the midway gains
-        np.save(path0+"gains0.npy", gains)
-        # np.save(path0+"data0.npy", data)
-        np.save(path0+"params0.npy", params)
+        # np.save(path0+"gains0.npy", gains)
+        # # np.save(path0+"data0.npy", data)
+        # np.save(path0+"params0.npy", params)
 
 
         return gains, gain_flags, params, param_flags
+
+
+
+
+    def initial_estimates(self, fsel_data, est_arr, freq, valid_ant):
+        """
+        This function return the set of initial estimates for each param in params.
+        type is either k (delay) or t (tec).
+
+        """
+
+        n_ant, n_param = est_arr.shape
+
+        # The number of bins is set such that the transform has a specific
+        # resolution in terms of wrap number. This can be set independently of
+        # bandwidth and has an intuitive explanation i.e. a value of 0.01 will
+        # yield an nbins value such that adjacent values of the transform will
+        # change the wrap number by exactly 0.01. 
+
+        dfreq = np.abs(freq[-2] - freq[-1])
+        est_resolution= 0.01
+        max_n_wrap = 1 / (2 * dfreq) * (freq[-1] - freq[0])
+        nbins = int((2 * max_n_wrap) / est_resolution)
+        fft_freq = np.fft.fftfreq(nbins, dfreq)
+
+        fft_arr = np.zeros((n_ant, nbins, n_param), dtype=fsel_data.dtype)
+
+        # NOTE: We do not fftshift either the output of the FFT or the
+        # fftfreq values - this is completely acceptable as long as we treat
+        # both consistently.
+
+        for i in range(n_param):
+            if i == 0:
+                datak = fsel_data[:, :, 0]
+            elif i == 1:
+                datak = fsel_data[:, :, -1]
+            else:
+                raise ValueError("Unsupported number of parameters for delay.")
+
+            fft_arr_i = fft_arr[..., i]
+
+            fft_arr_i = np.fft.fft(
+                datak.copy(),
+                axis=-1,
+                n=nbins
+            )
+
+            est_arr[:, i] = fft_freq[np.argmax(np.abs(fft_arr_i), axis=1)]
+
+        est_arr[~valid_ant] = 0
+
+        return est_arr, fft_arr, fft_freq
+
+
+    # start = uf*chan_per_subint
+    # end = (uf+1)*chan_per_subint
+    # fsel = f_map[start:end]
+    # fsel_chan = chan_freq[start:end]
+    # dfreq = np.abs(fsel_chan[-2]-fsel_chan[-1])
+
+
+    # sel_n_chan = fsel.size
+    # fsel_data = ref_data[:, fsel]
+    # valid_ant = fsel_data.any(axis=(1, 2))
+
+    
+    # nonzero_count = np.count_nonzero(fsel_data, axis=(1, 2))
+    # #Set threshold on the number of nonzero entries along channels
+    # zero_threshold = 0.5
+    # #60% used before>> Flag if more than 40% entries is zero
+    # param_flag_sel = np.where(nonzero_count<= (1-zero_threshold)*fsel_data.shape[1]*fsel_data.shape[2])
+    # param_flags[ut, :, param_flag_sel, :] = 1
+    # gain_flags[ut, :, param_flag_sel, :] = 1
+
+    # #Do not flag the ref_ant.
+    # param_flags[ut, :, ref_ant, :] = 0
+    # gain_flags[ut, :, ref_ant, :] = 0
+
