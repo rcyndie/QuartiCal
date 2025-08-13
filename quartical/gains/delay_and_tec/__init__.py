@@ -283,11 +283,11 @@ class DelayAndTec(ParameterizedGain):
                     params[:, :, q, 0, 0] = -tec_arr[:, q]
 
                 elif n_corr > 1:
-                    params[:, :, q, 0, 1] = -delay_arr[:, q, 0]
-                    params[:, :, q, 0, 0] = -tec_arr[:, q, 0]
+                    params[:, :, q, 0, 1] = -delay_arr[:, q, 0][:, np.newaxis]
+                    params[:, :, q, 0, 0] = -tec_arr[:, q, 0][:, np.newaxis]
 
-                    params[:, :, q, 0, 3] = -delay_arr[:, q, 1]
-                    params[:, :, q, 0, 2] = -tec_arr[:, q, 1]
+                    params[:, :, q, 0, 3] = -delay_arr[:, q, 1][:, np.newaxis]
+                    params[:, :, q, 0, 2] = -tec_arr[:, q, 1][:, np.newaxis]
 
             else:
                 if n_corr == 1:
@@ -295,17 +295,14 @@ class DelayAndTec(ParameterizedGain):
                     params[:, :, p, 0, 0] = tec_arr[:, p]
 
                 elif n_corr > 1:
-                    params[:, :, p, 0, 1] = delay_arr[:, p, 0]
-                    params[:, :, p, 0, 0] = tec_arr[:, p, 0]
+                    params[:, :, p, 0, 1] = delay_arr[:, p, 0][:, np.newaxis]
+                    params[:, :, p, 0, 0] = tec_arr[:, p, 0][:, np.newaxis]
 
-                    params[:, :, p, 0, 3] = delay_arr[:, p, 1]
-                    params[:, :, p, 0, 2] = tec_arr[:, p, 1]
+                    params[:, :, p, 0, 3] = delay_arr[:, p, 1][:, np.newaxis]
+                    params[:, :, p, 0, 2] = tec_arr[:, p, 1][:, np.newaxis]
 
 
     
-
-
-
         delay_and_tec_params_to_gains(
             params,
             gains,
