@@ -186,6 +186,20 @@ class DelayAndTec(ParameterizedGain):
                 fsel_data = ref_data[:, fsel]
                 valid_ant = fsel_data.any(axis=(1, 2))
 
+
+                nonzero_count = np.count_nonzero(fsel_data, axis=(1, 2))
+
+
+                #Set threshold on the number of nonzero entries along channels
+                threshold0 = 0.6 #20% of visibilities are zero >> flagged
+                param_flag_sel = np.where(nonzero_count<= threshold0*fsel_data.shape[1]*fsel_data.shape[2])
+                param_flags[ut, uf, param_flag_sel, :] = 1
+                gain_flags[ut, :, param_flag_sel, :] = 1
+
+                #Do not flag the ref_ant.
+                param_flags[ut, uf, ref_ant, :] = 0
+                gain_flags[ut, :, ref_ant, :] = 0
+
                 #number of channels per subband
                 subint_stride = int(np.ceil(fsel_nchan / n_subint))
 
@@ -213,15 +227,6 @@ class DelayAndTec(ParameterizedGain):
 
 
 
-
-                    path00 = "/home/russeeawon/testing/test_misc/expt_kt_robust_delay_and_tec/"
-                    path01 = ""
-                    path0 = path00+path01
-
-                    # np.save(path0+"delayest0_t0.npy", params[0, 0, :, 0, 1])
-                    np.save(path0+"delay_fft_freq0_t0.npy", fft_freq)
-
-
                     for p in range(n_ant):
                         for c in range(n_corr):
                             if c == 0:
@@ -233,7 +238,6 @@ class DelayAndTec(ParameterizedGain):
                             #shape of subint est array << subint_est = np.empty((n_tint, n_fint, n_subint, n_ant, n_corr))
                             subint_est[ut, uf, i, p, c] = fft_freq[np.argmax(np.abs(fft_arr), axis=0)]
 
-                            np.save(path0+"delay_fftarr0_t0_ant{}.npy".format(p), fft_arr)
 
 
                     # Zero the reference antenna/antennas without data.
