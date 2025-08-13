@@ -228,11 +228,10 @@ class DelayAndTec(ParameterizedGain):
 
 
                     for p in range(n_ant):
-                        for c in range(n_corr):
-                            if c == 0:
-                                datac = subint_data[p, :, 0]
-                            elif c > 1:
-                                datac = subint_data[p, :, -1]
+                        corr_indices = [0] if n_corr == 1 else [0, n_corr - 1]
+    
+                        for c in corr_indices:
+                            datac = subint_data[p, :, c]
 
                             fft_arr = np.fft.fft(datac, axis=0, n=nbins)
                             #shape of subint est array << subint_est = np.empty((n_tint, n_fint, n_subint, n_ant, n_corr))
