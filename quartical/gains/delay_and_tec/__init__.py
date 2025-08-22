@@ -310,10 +310,5 @@ class DelayAndTec(ParameterizedGain):
             term_kwargs[f"{self.name}_param_freq_map"],
         )
 
-        #Save the midway gains
-        # np.save(path0+"gains0.npy", gains)
-        # # np.save(path0+"data0.npy", data)
-        # np.save(path0+"params0.npy", params)
-
 
         return gains, gain_flags, params, param_flags
