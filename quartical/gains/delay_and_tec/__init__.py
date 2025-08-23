@@ -190,7 +190,8 @@ class DelayAndTec(ParameterizedGain):
 
 
                 #Set threshold on the number of nonzero entries along channels
-                threshold0 = 0.6 #20% of visibilities are zero >> flagged
+                #based on the following, flag channels that have fewer than threshold % of non-zero vis
+                threshold0 = 0.5
                 param_flag_sel = np.where(nonzero_count<= threshold0*fsel_data.shape[1]*fsel_data.shape[2])
                 param_flags[ut, uf, param_flag_sel, :] = 1
                 gain_flags[ut, :, param_flag_sel, :] = 1
