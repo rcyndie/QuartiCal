@@ -6,7 +6,6 @@ from quartical.gains.delay_and_offset.kernel import (
     delay_and_offset_solver,
     delay_and_offset_params_to_gains
 )
-import finufft
 from quartical.gains.general.flagging import (
     apply_gain_flags_to_gains,
     apply_param_flags_to_params
