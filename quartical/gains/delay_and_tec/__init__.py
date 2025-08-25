@@ -191,7 +191,7 @@ class DelayAndTec(ParameterizedGain):
 
                 #Set threshold on the number of nonzero entries along channels
                 #based on the following, flag channels that have fewer than threshold % of non-zero vis
-                threshold0 = 0.5
+                threshold0 = 0.6
                 param_flag_sel = np.where(nonzero_count<= threshold0*fsel_data.shape[1]*fsel_data.shape[2])
                 param_flags[ut, uf, param_flag_sel, :] = 1
                 gain_flags[ut, :, param_flag_sel, :] = 1
@@ -304,8 +304,8 @@ class DelayAndTec(ParameterizedGain):
 
         #Choose a window size that must be odd.
         window_size = 30
-        # run_median_filter = False
-        run_median_filter = True
+        run_median_filter = False
+        # run_median_filter = True
 
 
         if run_median_filter:
