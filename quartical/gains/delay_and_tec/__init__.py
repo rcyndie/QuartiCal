@@ -1,5 +1,4 @@
 import numpy as np
-import finufft
 from scipy.ndimage import median_filter
 from collections import namedtuple
 from quartical.gains.conversion import no_op, trig_to_angle
